@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__laravel-boost__application-info",
+      "mcp__laravel-boost__list-routes",
+      "mcp__laravel-boost__database-schema",
+      "Bash(composer require:*)",
+      "Bash(php artisan make:migration:*)",
+      "Bash(php artisan migrate:*)",
+      "Bash(php artisan:*)",
+      "Bash(vendor/bin/pint:*)",
+      "mcp__laravel-boost__get-absolute-url",
+      "Bash(composer show:*)",
+      "mcp__laravel-boost__search-docs",
+      "Bash(php -l:*)",
+      "mcp__laravel-boost__database-query",
+      "Bash(curl:*)",
+      "WebFetch(domain:192.168.8.106)",
+      "mcp__laravel-boost__tinker"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "laravel-boost"
+  ]
+}
