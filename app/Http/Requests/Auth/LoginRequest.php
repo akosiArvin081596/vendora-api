@@ -19,7 +19,6 @@ class LoginRequest extends FormRequest
         return [
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
-            'user_type' => ['required', 'string', 'in:vendor,customer,admin'],
         ];
     }
 
@@ -32,8 +31,6 @@ class LoginRequest extends FormRequest
             'email.required' => 'Email address is required.',
             'email.email' => 'Please provide a valid email address.',
             'password.required' => 'Password is required.',
-            'user_type.required' => 'User type is required.',
-            'user_type.in' => 'User type must be vendor, customer, or admin.',
         ];
     }
 }

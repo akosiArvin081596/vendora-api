@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'websocket' => [
+        'url' => env('WEBSOCKET_SERVER_URL', 'http://localhost:3001'),
+        'secret' => env('WEBHOOK_SECRET'),
+    ],
+
 ];

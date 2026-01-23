@@ -52,7 +52,7 @@ class UpdateProductRequest extends FormRequest
             'stock' => ['sometimes', 'integer', 'min:0'],
             'min_stock' => ['sometimes', 'integer', 'min:0'],
             'max_stock' => ['sometimes', 'integer', 'min:0'],
-            'image' => ['nullable', 'string', 'max:500'],
+            'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:5120'],
             'is_active' => ['nullable', 'boolean'],
             'is_ecommerce' => ['nullable', 'boolean'],
             'bulk_pricing' => ['nullable', 'array'],

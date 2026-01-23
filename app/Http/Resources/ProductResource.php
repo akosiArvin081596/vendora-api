@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
 class ProductResource extends JsonResource
 {
@@ -32,7 +33,7 @@ class ProductResource extends JsonResource
             'min_stock' => $this->min_stock,
             'max_stock' => $this->max_stock,
             'is_low_stock' => $this->stock <= $lowStockThreshold,
-            'image' => $this->image,
+            'image' => $this->image ? Storage::disk('public')->url($this->image) : null,
             'is_active' => $this->is_active ?? true,
             'is_ecommerce' => $this->is_ecommerce ?? true,
             'bulk_pricing' => ProductBulkPriceResource::collection($this->whenLoaded('bulkPrices')),

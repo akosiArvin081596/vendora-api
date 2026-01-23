@@ -43,7 +43,7 @@ class StoreProductRequest extends FormRequest
             'stock' => ['required', 'integer', 'min:0'],
             'min_stock' => ['nullable', 'integer', 'min:0'],
             'max_stock' => ['nullable', 'integer', 'min:0'],
-            'image' => ['nullable', 'string', 'max:500'],
+            'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:5120'],
             'is_active' => ['required', 'boolean'],
             'is_ecommerce' => ['required', 'boolean'],
             'bulk_pricing' => ['nullable', 'array'],

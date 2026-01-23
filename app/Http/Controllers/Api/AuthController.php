@@ -196,7 +196,7 @@ class AuthController extends Controller
     )]
     public function login(LoginRequest $request): JsonResponse
     {
-        if (! Auth::attempt($request->only('email', 'password', 'user_type'))) {
+        if (! Auth::attempt($request->only('email', 'password'))) {
             AuditLog::log('login_failed', null, ['email' => $request->email]);
 
             return response()->json([

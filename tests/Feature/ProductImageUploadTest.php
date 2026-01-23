@@ -1,0 +1,199 @@
+<?php
+
+use App\Models\Category;
+use App\Models\Product;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Laravel\Sanctum\Sanctum;
+
+uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    Storage::fake('public');
+});
+
+it('creates a product with an image', function () {
+    $user = User::factory()->create();
+    $category = Category::factory()->create();
+
+    Sanctum::actingAs($user);
+
+    $image = UploadedFile::fake()->image('product.jpg', 800, 600);
+
+    $response = $this->postJson('/api/products', [
+        'name' => 'Product With Image',
+        'sku' => 'IMG-001',
+        'category_id' => $category->id,
+        'price' => 1500,
+        'currency' => 'PHP',
+        'stock' => 50,
+        'unit' => 'pc',
+        'is_active' => true,
+        'is_ecommerce' => true,
+        'image' => $image,
+    ]);
+
+    $response->assertCreated();
+    $response->assertJsonFragment([
+        'name' => 'Product With Image',
+        'sku' => 'IMG-001',
+    ]);
+
+    $product = Product::where('sku', 'IMG-001')->first();
+    expect($product->image)->not->toBeNull();
+
+    Storage::disk('public')->assertExists($product->image);
+});
+
+it('creates a product without an image', function () {
+    $user = User::factory()->create();
+    $category = Category::factory()->create();
+
+    Sanctum::actingAs($user);
+
+    $response = $this->postJson('/api/products', [
+        'name' => 'Product Without Image',
+        'sku' => 'NOIMG-001',
+        'category_id' => $category->id,
+        'price' => 1500,
+        'currency' => 'PHP',
+        'stock' => 50,
+        'unit' => 'pc',
+        'is_active' => true,
+        'is_ecommerce' => true,
+    ]);
+
+    $response->assertCreated();
+    $response->assertJsonPath('data.image', null);
+
+    $product = Product::where('sku', 'NOIMG-001')->first();
+    expect($product->image)->toBeNull();
+});
+
+it('updates a product with a new image', function () {
+    $user = User::factory()->create();
+    $category = Category::factory()->create();
+    $product = Product::factory()->for($user)->for($category)->create();
+
+    Sanctum::actingAs($user);
+
+    $image = UploadedFile::fake()->image('new-product.png', 1024, 768);
+
+    $response = $this->postJson('/api/products/'.$product->id, [
+        '_method' => 'PATCH',
+        'name' => 'Updated With Image',
+        'image' => $image,
+    ]);
+
+    $response->assertSuccessful();
+    $response->assertJsonFragment([
+        'name' => 'Updated With Image',
+    ]);
+
+    $product->refresh();
+    expect($product->image)->not->toBeNull();
+
+    Storage::disk('public')->assertExists($product->image);
+});
+
+it('replaces existing image when updating', function () {
+    $user = User::factory()->create();
+    $category = Category::factory()->create();
+
+    $oldImage = UploadedFile::fake()->image('old.jpg');
+    $oldPath = $oldImage->store('products', 'public');
+
+    $product = Product::factory()->for($user)->for($category)->create([
+        'image' => $oldPath,
+    ]);
+
+    Storage::disk('public')->assertExists($oldPath);
+
+    Sanctum::actingAs($user);
+
+    $newImage = UploadedFile::fake()->image('new.jpg', 800, 600);
+
+    $response = $this->postJson('/api/products/'.$product->id, [
+        '_method' => 'PATCH',
+        'image' => $newImage,
+    ]);
+
+    $response->assertSuccessful();
+
+    $product->refresh();
+    expect($product->image)->not->toBe($oldPath);
+
+    Storage::disk('public')->assertMissing($oldPath);
+    Storage::disk('public')->assertExists($product->image);
+});
+
+it('returns full image URL in product resource', function () {
+    $user = User::factory()->create();
+    $category = Category::factory()->create();
+
+    $image = UploadedFile::fake()->image('test.jpg');
+    $path = $image->store('products', 'public');
+
+    $product = Product::factory()->for($user)->for($category)->create([
+        'image' => $path,
+        'is_active' => true,
+    ]);
+
+    $response = $this->getJson('/api/products/'.$product->id);
+
+    $response->assertSuccessful();
+    $response->assertJsonPath('data.image', Storage::disk('public')->url($path));
+});
+
+it('validates image file type', function () {
+    $user = User::factory()->create();
+    $category = Category::factory()->create();
+
+    Sanctum::actingAs($user);
+
+    $invalidFile = UploadedFile::fake()->create('document.pdf', 100, 'application/pdf');
+
+    $response = $this->postJson('/api/products', [
+        'name' => 'Invalid Image Product',
+        'sku' => 'INV-001',
+        'category_id' => $category->id,
+        'price' => 1500,
+        'currency' => 'PHP',
+        'stock' => 50,
+        'unit' => 'pc',
+        'is_active' => true,
+        'is_ecommerce' => true,
+        'image' => $invalidFile,
+    ]);
+
+    $response->assertUnprocessable();
+    $response->assertJsonValidationErrors(['image']);
+});
+
+it('validates image file size', function () {
+    $user = User::factory()->create();
+    $category = Category::factory()->create();
+
+    Sanctum::actingAs($user);
+
+    // Create a file larger than 5MB (5120KB limit)
+    $largeFile = UploadedFile::fake()->image('large.jpg')->size(6000);
+
+    $response = $this->postJson('/api/products', [
+        'name' => 'Large Image Product',
+        'sku' => 'LRG-001',
+        'category_id' => $category->id,
+        'price' => 1500,
+        'currency' => 'PHP',
+        'stock' => 50,
+        'unit' => 'pc',
+        'is_active' => true,
+        'is_ecommerce' => true,
+        'image' => $largeFile,
+    ]);
+
+    $response->assertUnprocessable();
+    $response->assertJsonValidationErrors(['image']);
+});

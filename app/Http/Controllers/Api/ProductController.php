@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use OpenApi\Attributes as OA;
 
 class ProductController extends Controller
@@ -263,6 +264,13 @@ class ProductController extends Controller
         $bulkPricing = $data['bulk_pricing'] ?? null;
         unset($data['bulk_pricing']);
 
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('products', 'public');
+            $data['image'] = $path;
+        } else {
+            unset($data['image']);
+        }
+
         $product = Product::query()->create($data);
 
         if ($bulkPricing && is_array($bulkPricing)) {
@@ -398,6 +406,16 @@ class ProductController extends Controller
 
         $bulkPricing = $data['bulk_pricing'] ?? null;
         unset($data['bulk_pricing']);
+
+        if ($request->hasFile('image')) {
+            if ($product->image) {
+                Storage::disk('public')->delete($product->image);
+            }
+            $path = $request->file('image')->store('products', 'public');
+            $data['image'] = $path;
+        } else {
+            unset($data['image']);
+        }
 
         $product->update($data);
 
