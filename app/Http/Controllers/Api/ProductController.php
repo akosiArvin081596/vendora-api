@@ -86,7 +86,7 @@ class ProductController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $query = Product::query()
-            ->with(['category', 'bulkPrices'])
+            ->with(['category', 'bulkPrices', 'user.vendorProfile'])
             ->where('is_active', true);
 
         if (! $request->filled('store_id')) {
@@ -327,7 +327,7 @@ class ProductController extends Controller
     public function show(int $product): ProductResource
     {
         $product = Product::query()
-            ->with(['category', 'bulkPrices'])
+            ->with(['category', 'bulkPrices', 'user.vendorProfile'])
             ->where('is_active', true)
             ->where('is_ecommerce', true)
             ->findOrFail($product);
@@ -488,7 +488,7 @@ class ProductController extends Controller
     public function showBySku(Request $request, string $sku): ProductResource
     {
         $query = Product::query()
-            ->with(['category', 'bulkPrices'])
+            ->with(['category', 'bulkPrices', 'user.vendorProfile'])
             ->where('is_active', true);
 
         if (! $request->filled('store_id')) {
@@ -534,7 +534,7 @@ class ProductController extends Controller
     public function showByBarcode(Request $request, string $code): ProductResource
     {
         $query = Product::query()
-            ->with(['category', 'bulkPrices'])
+            ->with(['category', 'bulkPrices', 'user.vendorProfile'])
             ->where('is_active', true);
 
         if (! $request->filled('store_id')) {

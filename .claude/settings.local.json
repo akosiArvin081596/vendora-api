@@ -23,7 +23,8 @@
       "Bash(./gradlew assembleRelease:*)",
       "Bash(dir /b \"C:\\\\Users\\\\DSWDSRV-CARAGA\\\\Desktop\\\\VENDORA\\\\development\\\\vendora-websocket-server\")",
       "Bash(dir /s /b \"c:\\\\Users\\\\DSWDSRV-CARAGA\\\\Desktop\\\\VENDORA\\\\development\\\\vendora-frontend-mobile\\\\src\\\\*.tsx\")",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(dir:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

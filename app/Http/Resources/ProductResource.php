@@ -37,6 +37,14 @@ class ProductResource extends JsonResource
             'is_active' => $this->is_active ?? true,
             'is_ecommerce' => $this->is_ecommerce ?? true,
             'bulk_pricing' => ProductBulkPriceResource::collection($this->whenLoaded('bulkPrices')),
+            'vendor' => $this->when($this->relationLoaded('user'), function () {
+                $user = $this->user;
+
+                return [
+                    'id' => $user->id,
+                    'name' => $user->vendorProfile?->business_name ?? $user->name,
+                ];
+            }),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];
