@@ -20,7 +20,8 @@
       "mcp__laravel-boost__get-config",
       "Bash(Remove-Item -Recurse -Force android)",
       "Bash(npx expo prebuild:*)",
-      "Bash(./gradlew assembleRelease:*)"
+      "Bash(./gradlew assembleRelease:*)",
+      "Bash(dir /b \"C:\\\\Users\\\\DSWDSRV-CARAGA\\\\Desktop\\\\VENDORA\\\\development\\\\vendora-websocket-server\")"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -68,6 +68,7 @@ class InventoryController extends Controller
     {
         $user = $request->user();
         $query = Product::query()
+            ->with(['category', 'bulkPrices'])
             ->where('user_id', $user->id);
 
         $search = $request->string('search')->trim();
