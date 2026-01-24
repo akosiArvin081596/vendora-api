@@ -2,10 +2,11 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\UserType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
@@ -23,10 +24,8 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
-        'business_name',
         'email',
         'password',
-        'subscription_plan',
         'user_type',
     ];
 
@@ -50,7 +49,40 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'user_type' => UserType::class,
         ];
+    }
+
+    /**
+     * Get the vendor profile for this user.
+     */
+    public function vendorProfile(): HasOne
+    {
+        return $this->hasOne(VendorProfile::class);
+    }
+
+    /**
+     * Check if the user is an admin.
+     */
+    public function isAdmin(): bool
+    {
+        return $this->user_type === UserType::Admin;
+    }
+
+    /**
+     * Check if the user is a vendor.
+     */
+    public function isVendor(): bool
+    {
+        return $this->user_type === UserType::Vendor;
+    }
+
+    /**
+     * Check if the user is a buyer.
+     */
+    public function isBuyer(): bool
+    {
+        return $this->user_type === UserType::Buyer;
     }
 
     public function products(): HasMany

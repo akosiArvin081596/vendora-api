@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\VendorController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CustomerController;
@@ -87,4 +88,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/stores/{store}/products/{product}', [StoreProductController::class, 'show'])->name('stores.products.show');
     Route::patch('/stores/{store}/products/{product}', [StoreProductController::class, 'update'])->name('stores.products.update');
     Route::delete('/stores/{store}/products/{product}', [StoreProductController::class, 'destroy'])->name('stores.products.destroy');
+
+    // Admin Routes
+    Route::prefix('admin')->group(function () {
+        Route::post('/vendors', [VendorController::class, 'store'])->name('admin.vendors.store');
+    });
 });

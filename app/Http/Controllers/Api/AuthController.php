@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\UserType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
@@ -35,18 +36,16 @@ class AuthController extends Controller
     #[OA\Post(
         path: '/api/auth/register',
         tags: ['Auth'],
-        summary: 'Register a new user',
+        summary: 'Register a new buyer account',
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ['business_name', 'email', 'password', 'password_confirmation', 'subscription_plan', 'user_type'],
+                required: ['name', 'email', 'password', 'password_confirmation'],
                 properties: [
-                    new OA\Property(property: 'business_name', type: 'string', example: 'Vendor Corp'),
-                    new OA\Property(property: 'email', type: 'string', format: 'email', example: 'vendor@example.com'),
+                    new OA\Property(property: 'name', type: 'string', example: 'John Doe'),
+                    new OA\Property(property: 'email', type: 'string', format: 'email', example: 'john@example.com'),
                     new OA\Property(property: 'password', type: 'string', format: 'password', example: 'password'),
                     new OA\Property(property: 'password_confirmation', type: 'string', format: 'password', example: 'password'),
-                    new OA\Property(property: 'subscription_plan', type: 'string', example: 'basic'),
-                    new OA\Property(property: 'user_type', type: 'string', example: 'vendor'),
                 ]
             )
         ),
@@ -64,11 +63,9 @@ class AuthController extends Controller
                             type: 'object',
                             properties: [
                                 new OA\Property(property: 'id', type: 'integer', example: 1),
-                                new OA\Property(property: 'name', type: 'string', example: 'Vendor Corp'),
-                                new OA\Property(property: 'business_name', type: 'string', example: 'Vendor Corp'),
-                                new OA\Property(property: 'email', type: 'string', format: 'email', example: 'vendor@example.com'),
-                                new OA\Property(property: 'subscription_plan', type: 'string', example: 'basic'),
-                                new OA\Property(property: 'user_type', type: 'string', example: 'vendor'),
+                                new OA\Property(property: 'name', type: 'string', example: 'John Doe'),
+                                new OA\Property(property: 'email', type: 'string', format: 'email', example: 'john@example.com'),
+                                new OA\Property(property: 'user_type', type: 'string', example: 'buyer'),
                                 new OA\Property(property: 'created_at', type: 'string', format: 'date-time', example: '2026-01-10T10:00:00Z'),
                                 new OA\Property(property: 'updated_at', type: 'string', format: 'date-time', example: '2026-01-10T10:00:00Z'),
                             ]
@@ -82,12 +79,10 @@ class AuthController extends Controller
     public function register(RegisterRequest $request): JsonResponse
     {
         $user = User::query()->create([
-            'name' => $request->business_name,
-            'business_name' => $request->business_name,
+            'name' => $request->name,
             'email' => $request->email,
             'password' => $request->password,
-            'subscription_plan' => $request->subscription_plan,
-            'user_type' => $request->user_type,
+            'user_type' => UserType::Buyer,
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
@@ -109,11 +104,10 @@ class AuthController extends Controller
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ['email', 'password', 'user_type'],
+                required: ['email', 'password'],
                 properties: [
                     new OA\Property(property: 'email', type: 'string', format: 'email', example: 'vendor@example.com'),
                     new OA\Property(property: 'password', type: 'string', format: 'password', example: 'password'),
-                    new OA\Property(property: 'user_type', type: 'string', example: 'vendor'),
                 ]
             )
         ),
@@ -133,10 +127,19 @@ class AuthController extends Controller
                             properties: [
                                 new OA\Property(property: 'id', type: 'integer', example: 1),
                                 new OA\Property(property: 'name', type: 'string', example: 'Vendor Corp'),
-                                new OA\Property(property: 'business_name', type: 'string', example: 'Vendor Corp'),
                                 new OA\Property(property: 'email', type: 'string', format: 'email', example: 'vendor@example.com'),
-                                new OA\Property(property: 'subscription_plan', type: 'string', example: 'basic'),
                                 new OA\Property(property: 'user_type', type: 'string', example: 'vendor'),
+                                new OA\Property(
+                                    property: 'vendor_profile',
+                                    type: 'object',
+                                    nullable: true,
+                                    description: 'Vendor profile (only for vendors)',
+                                    properties: [
+                                        new OA\Property(property: 'id', type: 'integer', example: 1),
+                                        new OA\Property(property: 'business_name', type: 'string', example: 'Vendor Corp'),
+                                        new OA\Property(property: 'subscription_plan', type: 'string', example: 'basic'),
+                                    ]
+                                ),
                                 new OA\Property(
                                     property: 'stores',
                                     type: 'array',
@@ -213,6 +216,11 @@ class AuthController extends Controller
 
         // Build user data with store information
         $userData = $user->toArray();
+
+        // Include vendor profile for vendors
+        if ($user->isVendor()) {
+            $userData['vendor_profile'] = $user->vendorProfile;
+        }
 
         // Include owned stores
         $userData['stores'] = $user->ownedStores()

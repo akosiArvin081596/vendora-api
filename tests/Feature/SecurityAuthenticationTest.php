@@ -12,16 +12,14 @@ uses(RefreshDatabase::class);
 */
 
 it('rejects login with invalid credentials', function () {
-    User::factory()->create([
+    User::factory()->vendor()->create([
         'email' => 'test@example.com',
         'password' => 'correct-password',
-        'user_type' => 'vendor',
     ]);
 
     $response = $this->postJson('/api/auth/login', [
         'email' => 'test@example.com',
         'password' => 'wrong-password',
-        'user_type' => 'vendor',
     ]);
 
     $response->assertUnauthorized();
@@ -36,24 +34,6 @@ it('rejects login with non-existent email', function () {
     $response = $this->postJson('/api/auth/login', [
         'email' => 'nonexistent@example.com',
         'password' => 'any-password',
-        'user_type' => 'vendor',
-    ]);
-
-    $response->assertUnauthorized();
-});
-
-it('rejects login with wrong user type', function () {
-    User::factory()->create([
-        'email' => 'test@example.com',
-        'password' => 'password123',
-        'user_type' => 'vendor',
-    ]);
-
-    // Trying to login as customer when registered as vendor
-    $response = $this->postJson('/api/auth/login', [
-        'email' => 'test@example.com',
-        'password' => 'password123',
-        'user_type' => 'customer',
     ]);
 
     $response->assertUnauthorized();
@@ -79,7 +59,6 @@ it('rejects requests with expired/deleted token after logout', function () {
     $loginResponse = $this->postJson('/api/auth/login', [
         'email' => $user->email,
         'password' => 'password',
-        'user_type' => $user->user_type,
     ]);
 
     $token = $loginResponse->json('token');
@@ -101,22 +80,19 @@ it('prevents SQL injection in login email field', function () {
     $response = $this->postJson('/api/auth/login', [
         'email' => "admin@test.com' OR '1'='1",
         'password' => 'password',
-        'user_type' => 'vendor',
     ]);
 
     $response->assertUnprocessable();
 });
 
 it('prevents SQL injection in login password field', function () {
-    User::factory()->create([
+    User::factory()->vendor()->create([
         'email' => 'test@example.com',
-        'user_type' => 'vendor',
     ]);
 
     $response = $this->postJson('/api/auth/login', [
         'email' => 'test@example.com',
         'password' => "' OR '1'='1",
-        'user_type' => 'vendor',
     ]);
 
     $response->assertUnauthorized();
@@ -128,7 +104,6 @@ it('enforces rate limiting on login endpoint', function () {
         $response = $this->postJson('/api/auth/login', [
             'email' => 'test@example.com',
             'password' => 'wrong-password',
-            'user_type' => 'vendor',
         ]);
     }
 
@@ -139,12 +114,10 @@ it('enforces rate limiting on register endpoint', function () {
     // Make 6 requests (limit is 5 per minute)
     for ($i = 0; $i < 6; $i++) {
         $response = $this->postJson('/api/auth/register', [
-            'business_name' => "Business {$i}",
+            'name' => "User {$i}",
             'email' => "test{$i}@example.com",
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
-            'subscription_plan' => 'basic',
-            'user_type' => 'vendor',
+            'password' => 'SecurePassword123!',
+            'password_confirmation' => 'SecurePassword123!',
         ]);
     }
 
@@ -153,12 +126,10 @@ it('enforces rate limiting on register endpoint', function () {
 
 it('validates password strength on registration', function () {
     $response = $this->postJson('/api/auth/register', [
-        'business_name' => 'Test Business',
+        'name' => 'Test User',
         'email' => 'test@example.com',
         'password' => '123',
         'password_confirmation' => '123',
-        'subscription_plan' => 'basic',
-        'user_type' => 'vendor',
     ]);
 
     $response->assertUnprocessable();
@@ -169,12 +140,10 @@ it('prevents duplicate email registration', function () {
     User::factory()->create(['email' => 'existing@example.com']);
 
     $response = $this->postJson('/api/auth/register', [
-        'business_name' => 'New Business',
+        'name' => 'New User',
         'email' => 'existing@example.com',
         'password' => 'SecurePassword123!',
         'password_confirmation' => 'SecurePassword123!',
-        'subscription_plan' => 'basic',
-        'user_type' => 'vendor',
     ]);
 
     $response->assertUnprocessable();
@@ -188,13 +157,11 @@ it('does not expose user existence through login response timing', function () {
     $existingUserResponse = $this->postJson('/api/auth/login', [
         'email' => 'exists@example.com',
         'password' => 'wrong-password',
-        'user_type' => 'vendor',
     ]);
 
     $nonExistentResponse = $this->postJson('/api/auth/login', [
         'email' => 'notexists@example.com',
         'password' => 'wrong-password',
-        'user_type' => 'vendor',
     ]);
 
     expect($existingUserResponse->json('message'))
