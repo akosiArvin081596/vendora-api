@@ -24,7 +24,11 @@
       "Bash(dir /b \"C:\\\\Users\\\\DSWDSRV-CARAGA\\\\Desktop\\\\VENDORA\\\\development\\\\vendora-websocket-server\")",
       "Bash(dir /s /b \"c:\\\\Users\\\\DSWDSRV-CARAGA\\\\Desktop\\\\VENDORA\\\\development\\\\vendora-frontend-mobile\\\\src\\\\*.tsx\")",
       "Bash(findstr:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(php -r:*)",
+      "WebSearch",
+      "WebFetch(domain:medium.com)",
+      "WebFetch(domain:bobbyhadz.com)"
     ]
   },
   "enableAllProjectMcpServers": true,
