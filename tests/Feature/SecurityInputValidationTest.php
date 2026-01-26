@@ -81,7 +81,10 @@ describe('XSS Prevention', function () {
             'category_id' => $category->id,
             'price' => 100,
             'currency' => 'PHP',
+            'unit' => 'pc',
             'stock' => 10,
+            'is_active' => true,
+            'is_ecommerce' => true,
         ]);
 
         $response->assertCreated();

@@ -17,10 +17,8 @@ class AdminSeeder extends Seeder
             ['email' => 'admin@vendora.com'],
             [
                 'name' => 'Admin',
-                'business_name' => 'Vendora Admin',
                 'email' => 'admin@vendora.com',
                 'password' => Hash::make('password'),
-                'subscription_plan' => 'enterprise',
                 'user_type' => 'admin',
                 'email_verified_at' => now(),
             ]

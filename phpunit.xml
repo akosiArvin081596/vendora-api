@@ -24,7 +24,7 @@
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
         <env name="DB_CONNECTION" value="mysql"/>
-        <env name="DB_HOST" value="192.168.1.47"/>
+        <env name="DB_HOST" value="192.168.8.101"/>
         <env name="DB_PORT" value="3306"/>
         <env name="DB_DATABASE" value="vendora"/>
         <env name="DB_USERNAME" value="wsluser"/>

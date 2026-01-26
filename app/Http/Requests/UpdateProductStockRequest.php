@@ -8,7 +8,9 @@ class UpdateProductStockRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->isVendor() ?? false;
+        $user = $this->user();
+
+        return $user?->isVendor() || $user?->isAdmin();
     }
 
     /**

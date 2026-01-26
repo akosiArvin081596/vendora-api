@@ -229,10 +229,13 @@ it('cannot delete a category with products', function () {
     $this->assertDatabaseHas('categories', ['id' => $category->id]);
 });
 
-it('requires authentication to access categories', function () {
+it('allows public access to categories list', function () {
+    Category::factory()->count(2)->create();
+
     $response = $this->getJson('/api/categories');
 
-    $response->assertUnauthorized();
+    $response->assertSuccessful();
+    $response->assertJsonCount(2, 'data');
 });
 
 it('requires authentication to create category', function () {

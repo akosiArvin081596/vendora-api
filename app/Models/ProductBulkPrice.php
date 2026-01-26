@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\SerializesDatesInAppTimezone;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,6 +11,8 @@ class ProductBulkPrice extends Model
 {
     /** @use HasFactory<\Database\Factories\ProductBulkPriceFactory> */
     use HasFactory;
+
+    use SerializesDatesInAppTimezone;
 
     /**
      * @var list<string>

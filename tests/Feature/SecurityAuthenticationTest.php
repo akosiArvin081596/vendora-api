@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 
 uses(RefreshDatabase::class);
 
@@ -28,6 +29,27 @@ it('rejects login with invalid credentials', function () {
         'error' => 'INVALID_CREDENTIALS',
         'message' => 'The email or password you entered is incorrect.',
     ]);
+});
+
+it('updates last login timestamp on successful login', function () {
+    Carbon::setTestNow(Carbon::parse('2026-01-26 12:34:56'));
+
+    $user = User::factory()->vendor()->create();
+
+    $response = $this->postJson('/api/auth/login', [
+        'email' => $user->email,
+        'password' => 'password',
+    ]);
+
+    $response->assertSuccessful();
+
+    $user->refresh();
+
+    expect($user->last_login_at)
+        ->not->toBeNull()
+        ->and($user->last_login_at->equalTo(Carbon::now()))->toBeTrue();
+
+    Carbon::setTestNow();
 });
 
 it('rejects login with non-existent email', function () {
@@ -63,12 +85,20 @@ it('rejects requests with expired/deleted token after logout', function () {
 
     $token = $loginResponse->json('token');
 
-    // Logout
-    $this->withHeaders([
+    // Logout and verify it was successful
+    $logoutResponse = $this->withHeaders([
         'Authorization' => "Bearer {$token}",
     ])->postJson('/api/auth/logout');
 
-    // Try to use the old token
+    $logoutResponse->assertSuccessful();
+
+    // Verify all tokens were deleted from database
+    expect($user->fresh()->tokens()->count())->toBe(0);
+
+    // Refresh the application to clear any cached auth state
+    $this->refreshApplication();
+
+    // Try to use the old token - should fail
     $response = $this->withHeaders([
         'Authorization' => "Bearer {$token}",
     ])->getJson('/api/user');

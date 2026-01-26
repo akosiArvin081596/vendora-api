@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\SerializesDatesInAppTimezone;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,6 +12,8 @@ class StoreProduct extends Model
 {
     /** @use HasFactory<\Database\Factories\StoreProductFactory> */
     use HasFactory;
+
+    use SerializesDatesInAppTimezone;
 
     /**
      * @var list<string>

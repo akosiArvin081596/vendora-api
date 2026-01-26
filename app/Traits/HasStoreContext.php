@@ -13,7 +13,7 @@ trait HasStoreContext
      */
     protected function currentStore(Request $request): ?Store
     {
-        return $request->attributes->get('store') ?? app('current.store', null);
+        return $request->attributes->get('store') ?? (app()->bound('current.store') ? app('current.store') : null);
     }
 
     /**

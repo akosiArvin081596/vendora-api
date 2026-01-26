@@ -338,7 +338,9 @@ it('cannot adjust another users product', function () {
         'quantity' => 5,
     ]);
 
-    $response->assertNotFound();
+    // Validation rejects the product as invalid (not accessible to this user)
+    $response->assertUnprocessable();
+    $response->assertJsonValidationErrors(['product_id']);
 });
 
 it('requires authentication to access inventory', function () {

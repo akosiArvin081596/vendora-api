@@ -8,8 +8,11 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Services\WebhookService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Laravel\Sanctum\PersonalAccessToken;
 use OpenApi\Attributes as OA;
 
 #[OA\Info(
@@ -37,6 +40,10 @@ use OpenApi\Attributes as OA;
 #[OA\Tag(name: 'Store Staff', description: 'Store staff endpoints')]
 class AuthController extends Controller
 {
+    public function __construct(
+        private readonly WebhookService $webhookService,
+    ) {}
+
     #[OA\Post(
         path: '/api/auth/register',
         tags: ['Auth'],
@@ -214,9 +221,19 @@ class AuthController extends Controller
         }
 
         $user = User::query()->where('email', $request->email)->firstOrFail();
+        $user->forceFill(['last_login_at' => now()])->save();
         $token = $user->createToken('auth_token')->plainTextToken;
 
         AuditLog::log('login', $user);
+
+        // Notify socket server about user login
+        $this->webhookService->send('user:login', [
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'name' => $user->name,
+            'user_type' => $user->user_type->value,
+            'timestamp' => now()->toIso8601String(),
+        ]);
 
         // Build user data with store information
         $userData = $user->toArray();
@@ -271,14 +288,43 @@ class AuthController extends Controller
             new OA\Response(response: 401, description: 'Unauthenticated'),
         ]
     )]
-    public function logout(): JsonResponse
+    public function logout(Request $request): JsonResponse
     {
         /** @var User $user */
         $user = Auth::user();
 
         AuditLog::log('logout', $user);
 
-        $user->currentAccessToken()->delete();
+        // Notify socket server about user logout
+        $this->webhookService->send('user:logout', [
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'name' => $user->name,
+            'timestamp' => now()->toIso8601String(),
+        ]);
+
+        $token = $user->currentAccessToken();
+
+        if ($token && method_exists($token, 'delete')) {
+            $token->delete();
+        }
+
+        if ($request->bearerToken()) {
+            $accessToken = PersonalAccessToken::findToken($request->bearerToken());
+
+            if ($accessToken) {
+                $accessToken->delete();
+            }
+        }
+
+        $user->tokens()->delete();
+
+        Auth::guard('web')->logout();
+
+        if ($request->hasSession()) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
 
         return response()->json([
             'message' => 'Logged out successfully',

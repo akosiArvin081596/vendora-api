@@ -17,7 +17,7 @@ class ProductBulkPriceResource extends JsonResource
         return [
             'id' => $this->id,
             'min_qty' => $this->min_qty,
-            'price' => $this->price,
+            'price' => $this->price !== null ? (int) ($this->price / 100) : null,
         ];
     }
 }

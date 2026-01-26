@@ -20,7 +20,8 @@ it('creates a product with an image', function () {
 
     Sanctum::actingAs($user);
 
-    $image = UploadedFile::fake()->image('product.jpg', 800, 600);
+    // Use create() with image mimetype instead of image() which requires GD
+    $image = UploadedFile::fake()->create('product.jpg', 100, 'image/jpeg');
 
     $response = $this->postJson('/api/products', [
         'name' => 'Product With Image',
@@ -79,7 +80,7 @@ it('updates a product with a new image', function () {
 
     Sanctum::actingAs($user);
 
-    $image = UploadedFile::fake()->image('new-product.png', 1024, 768);
+    $image = UploadedFile::fake()->create('new-product.png', 100, 'image/png');
 
     $response = $this->postJson('/api/products/'.$product->id, [
         '_method' => 'PATCH',
@@ -102,7 +103,7 @@ it('replaces existing image when updating', function () {
     $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
 
-    $oldImage = UploadedFile::fake()->image('old.jpg');
+    $oldImage = UploadedFile::fake()->create('old.jpg', 100, 'image/jpeg');
     $oldPath = $oldImage->store('products', 'public');
 
     $product = Product::factory()->for($user)->for($category)->create([
@@ -113,7 +114,7 @@ it('replaces existing image when updating', function () {
 
     Sanctum::actingAs($user);
 
-    $newImage = UploadedFile::fake()->image('new.jpg', 800, 600);
+    $newImage = UploadedFile::fake()->create('new.jpg', 100, 'image/jpeg');
 
     $response = $this->postJson('/api/products/'.$product->id, [
         '_method' => 'PATCH',
@@ -133,12 +134,13 @@ it('returns full image URL in product resource', function () {
     $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
 
-    $image = UploadedFile::fake()->image('test.jpg');
+    $image = UploadedFile::fake()->create('test.jpg', 100, 'image/jpeg');
     $path = $image->store('products', 'public');
 
     $product = Product::factory()->for($user)->for($category)->create([
         'image' => $path,
         'is_active' => true,
+        'is_ecommerce' => true,
     ]);
 
     $response = $this->getJson('/api/products/'.$product->id);
@@ -179,7 +181,7 @@ it('validates image file size', function () {
     Sanctum::actingAs($user);
 
     // Create a file larger than 5MB (5120KB limit)
-    $largeFile = UploadedFile::fake()->image('large.jpg')->size(6000);
+    $largeFile = UploadedFile::fake()->create('large.jpg', 6000, 'image/jpeg');
 
     $response = $this->postJson('/api/products', [
         'name' => 'Large Image Product',

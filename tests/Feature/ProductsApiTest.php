@@ -113,9 +113,12 @@ it('creates a product', function () {
         'category_id' => $category->id,
         'price' => 1500,
         'currency' => 'PHP',
+        'unit' => 'pc',
         'stock' => 50,
         'min_stock' => 10,
         'max_stock' => 100,
+        'is_active' => true,
+        'is_ecommerce' => true,
     ]);
 
     $response->assertCreated();
@@ -132,6 +135,38 @@ it('creates a product', function () {
     ]);
 });
 
+it('allows admins to create a product', function () {
+    $user = User::factory()->admin()->create();
+    $category = Category::factory()->create();
+
+    Sanctum::actingAs($user);
+
+    $response = $this->postJson('/api/products', [
+        'name' => 'Admin Product',
+        'sku' => 'ADM-001',
+        'category_id' => $category->id,
+        'price' => 2500,
+        'currency' => 'PHP',
+        'unit' => 'pc',
+        'stock' => 25,
+        'is_active' => true,
+        'is_ecommerce' => true,
+    ]);
+
+    $response->assertCreated();
+    $response->assertJsonFragment([
+        'name' => 'Admin Product',
+        'sku' => 'ADM-001',
+        'price' => 2500,
+    ]);
+
+    $this->assertDatabaseHas('products', [
+        'user_id' => $user->id,
+        'name' => 'Admin Product',
+        'sku' => 'ADM-001',
+    ]);
+});
+
 it('forbids non-vendors from creating a product', function () {
     $user = User::factory()->buyer()->create();
     $category = Category::factory()->create();
@@ -144,9 +179,12 @@ it('forbids non-vendors from creating a product', function () {
         'category_id' => $category->id,
         'price' => 1500,
         'currency' => 'PHP',
+        'unit' => 'pc',
         'stock' => 50,
         'min_stock' => 10,
         'max_stock' => 100,
+        'is_active' => true,
+        'is_ecommerce' => true,
     ]);
 
     $response->assertForbidden();
@@ -160,7 +198,17 @@ it('validates required fields when creating a product', function () {
     $response = $this->postJson('/api/products', []);
 
     $response->assertUnprocessable();
-    $response->assertJsonValidationErrors(['name', 'sku', 'category_id', 'price', 'currency', 'stock']);
+    $response->assertJsonValidationErrors([
+        'name',
+        'sku',
+        'category_id',
+        'price',
+        'currency',
+        'unit',
+        'stock',
+        'is_active',
+        'is_ecommerce',
+    ]);
 });
 
 it('prevents duplicate SKU for the same user', function () {
@@ -177,7 +225,10 @@ it('prevents duplicate SKU for the same user', function () {
         'category_id' => $category->id,
         'price' => 100,
         'currency' => 'PHP',
+        'unit' => 'pc',
         'stock' => 10,
+        'is_active' => true,
+        'is_ecommerce' => true,
     ]);
 
     $response->assertUnprocessable();
@@ -236,7 +287,7 @@ it('updates a product', function () {
     $this->assertDatabaseHas('products', [
         'id' => $product->id,
         'name' => 'Updated Product Name',
-        'price' => 2000,
+        'price' => 200000, // Stored in cents
     ]);
 });
 
@@ -266,7 +317,7 @@ it('deletes a product', function () {
 
     $response->assertNoContent();
 
-    $this->assertDatabaseMissing('products', ['id' => $product->id]);
+    $this->assertSoftDeleted('products', ['id' => $product->id]);
 });
 
 it('cannot delete another users product', function () {

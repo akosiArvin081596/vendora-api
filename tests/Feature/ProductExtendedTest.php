@@ -11,7 +11,11 @@ uses(RefreshDatabase::class);
 it('gets a product by SKU', function () {
     $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
-    $product = Product::factory()->for($user)->for($category)->create(['sku' => 'TST-001']);
+    $product = Product::factory()->for($user)->for($category)->create([
+        'sku' => 'TST-001',
+        'is_active' => true,
+        'is_ecommerce' => true,
+    ]);
 
     Sanctum::actingAs($user);
 
@@ -34,23 +38,31 @@ it('returns 404 for non-existent SKU', function () {
     $response->assertNotFound();
 });
 
-it('cannot get another users product by SKU', function () {
+it('allows public access to any product by SKU', function () {
     $user = User::factory()->vendor()->create();
     $otherUser = User::factory()->vendor()->create();
     $category = Category::factory()->create();
-    Product::factory()->for($otherUser)->for($category)->create(['sku' => 'OTHER-001']);
+    $product = Product::factory()->for($otherUser)->for($category)->create([
+        'sku' => 'OTHER-001',
+        'is_active' => true,
+        'is_ecommerce' => true,
+    ]);
 
-    Sanctum::actingAs($user);
-
+    // Public endpoint - no auth required, can view any active e-commerce product
     $response = $this->getJson('/api/products/sku/OTHER-001');
 
-    $response->assertNotFound();
+    $response->assertSuccessful();
+    $response->assertJsonFragment(['sku' => 'OTHER-001']);
 });
 
 it('gets a product by barcode', function () {
     $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
-    $product = Product::factory()->for($user)->for($category)->create(['barcode' => '4801234567890']);
+    $product = Product::factory()->for($user)->for($category)->create([
+        'barcode' => '4801234567890',
+        'is_active' => true,
+        'is_ecommerce' => true,
+    ]);
 
     Sanctum::actingAs($user);
 
@@ -170,8 +182,16 @@ it('returns error for insufficient stock in bulk decrement', function () {
 it('filters products by stock_lte', function () {
     $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
-    Product::factory()->for($user)->for($category)->create(['stock' => 5]);
-    Product::factory()->for($user)->for($category)->create(['stock' => 50]);
+    Product::factory()->for($user)->for($category)->create([
+        'stock' => 5,
+        'is_active' => true,
+        'is_ecommerce' => true,
+    ]);
+    Product::factory()->for($user)->for($category)->create([
+        'stock' => 50,
+        'is_active' => true,
+        'is_ecommerce' => true,
+    ]);
 
     Sanctum::actingAs($user);
 
@@ -184,8 +204,16 @@ it('filters products by stock_lte', function () {
 it('filters products by stock_gte', function () {
     $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
-    Product::factory()->for($user)->for($category)->create(['stock' => 5]);
-    Product::factory()->for($user)->for($category)->create(['stock' => 50]);
+    Product::factory()->for($user)->for($category)->create([
+        'stock' => 5,
+        'is_active' => true,
+        'is_ecommerce' => true,
+    ]);
+    Product::factory()->for($user)->for($category)->create([
+        'stock' => 50,
+        'is_active' => true,
+        'is_ecommerce' => true,
+    ]);
 
     Sanctum::actingAs($user);
 
@@ -227,8 +255,14 @@ it('filters products by category slug', function () {
     $user = User::factory()->vendor()->create();
     $category1 = Category::factory()->create(['slug' => 'electronics']);
     $category2 = Category::factory()->create(['slug' => 'groceries']);
-    $product1 = Product::factory()->for($user)->for($category1)->create();
-    Product::factory()->for($user)->for($category2)->create();
+    $product1 = Product::factory()->for($user)->for($category1)->create([
+        'is_active' => true,
+        'is_ecommerce' => true,
+    ]);
+    Product::factory()->for($user)->for($category2)->create([
+        'is_active' => true,
+        'is_ecommerce' => true,
+    ]);
 
     Sanctum::actingAs($user);
 
@@ -245,7 +279,7 @@ it('returns new product fields in response', function () {
     $product = Product::factory()->for($user)->for($category)->create([
         'description' => 'Test description',
         'barcode' => '1234567890123',
-        'cost' => 5000,
+        'cost' => 500000, // Stored in cents (5000 * 100)
         'unit' => 'kg',
         'is_active' => true,
         'is_ecommerce' => true,
@@ -260,7 +294,7 @@ it('returns new product fields in response', function () {
         'description' => 'Test description',
         'barcode' => '1234567890123',
         'has_barcode' => true,
-        'cost' => 5000,
+        'cost' => 5000, // Resource converts from cents
         'unit' => 'kg',
         'is_active' => true,
         'is_ecommerce' => true,
@@ -303,7 +337,7 @@ it('creates product with new fields', function () {
     $this->assertDatabaseHas('products', [
         'sku' => 'NEW-001',
         'barcode' => '9876543210123',
-        'cost' => 7500,
+        'cost' => 750000, // Stored in cents (7500 * 100)
         'unit' => 'pack',
         'is_ecommerce' => false,
     ]);

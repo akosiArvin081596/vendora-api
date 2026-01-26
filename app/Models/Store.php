@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\SerializesDatesInAppTimezone;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -15,6 +16,8 @@ class Store extends Model
 
     /** @use HasFactory<\Database\Factories\StoreFactory> */
     use HasFactory;
+
+    use SerializesDatesInAppTimezone;
 
     /**
      * @var list<string>
@@ -47,6 +50,14 @@ class Store extends Model
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /**
+     * Alias for owner() - used by factory relationships.
+     */
+    public function user(): BelongsTo
+    {
+        return $this->owner();
     }
 
     /**

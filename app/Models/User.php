@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\UserStatus;
 use App\Enums\UserType;
+use App\Models\Concerns\SerializesDatesInAppTimezone;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -17,6 +18,8 @@ class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
+
+    use SerializesDatesInAppTimezone;
 
     /**
      * The attributes that are mass assignable.
@@ -51,6 +54,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'last_login_at' => 'datetime',
             'password' => 'hashed',
             'user_type' => UserType::class,
             'status' => UserStatus::class,
