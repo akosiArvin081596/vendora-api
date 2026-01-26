@@ -14,14 +14,65 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use OpenApi\Attributes as OA;
 
 class StoreProductController extends Controller
 {
     use AuthorizesRequests;
 
-    /**
-     * Display a listing of products available at a store.
-     */
+    #[OA\Get(
+        path: '/api/stores/{store}/products',
+        tags: ['Store Product'],
+        summary: 'List products available at a store',
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'store', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'search', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'is_available', in: 'query', required: false, schema: new OA\Schema(type: 'boolean')),
+            new OA\Parameter(name: 'low_stock', in: 'query', required: false, schema: new OA\Schema(type: 'boolean')),
+            new OA\Parameter(name: 'sort', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'direction', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'per_page', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Store product list',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(
+                                properties: [
+                                    new OA\Property(property: 'id', type: 'integer', example: 1),
+                                    new OA\Property(property: 'product_id', type: 'integer', example: 5),
+                                    new OA\Property(property: 'store_id', type: 'integer', example: 1),
+                                    new OA\Property(property: 'stock', type: 'integer', example: 50),
+                                    new OA\Property(property: 'min_stock', type: 'integer', example: 10),
+                                    new OA\Property(property: 'max_stock', type: 'integer', example: 100),
+                                    new OA\Property(property: 'price_override', type: 'integer', example: 1500, nullable: true),
+                                    new OA\Property(property: 'is_available', type: 'boolean', example: true),
+                                    new OA\Property(
+                                        property: 'product',
+                                        type: 'object',
+                                        properties: [
+                                            new OA\Property(property: 'id', type: 'integer', example: 5),
+                                            new OA\Property(property: 'name', type: 'string', example: 'Premium Rice 5kg'),
+                                            new OA\Property(property: 'sku', type: 'string', example: 'GR-1001'),
+                                            new OA\Property(property: 'price', type: 'integer', example: 1250),
+                                        ]
+                                    ),
+                                ]
+                            )
+                        ),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 403, description: 'Forbidden'),
+        ]
+    )]
     public function index(Request $request, Store $store): AnonymousResourceCollection
     {
         $this->authorize('viewProducts', $store);
@@ -70,9 +121,48 @@ class StoreProductController extends Controller
         return StoreProductResource::collection($storeProducts);
     }
 
-    /**
-     * Add a product to a store.
-     */
+    #[OA\Post(
+        path: '/api/stores/{store}/products',
+        tags: ['Store Product'],
+        summary: 'Add a product to a store',
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'store', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['product_id'],
+                properties: [
+                    new OA\Property(property: 'product_id', type: 'integer', example: 5),
+                    new OA\Property(property: 'stock', type: 'integer', example: 50),
+                    new OA\Property(property: 'min_stock', type: 'integer', example: 10),
+                    new OA\Property(property: 'max_stock', type: 'integer', example: 100),
+                    new OA\Property(property: 'price_override', type: 'integer', example: 1500),
+                    new OA\Property(property: 'is_available', type: 'boolean', example: true),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: 'Product added to store',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'id', type: 'integer', example: 1),
+                        new OA\Property(property: 'product_id', type: 'integer', example: 5),
+                        new OA\Property(property: 'store_id', type: 'integer', example: 1),
+                        new OA\Property(property: 'stock', type: 'integer', example: 50),
+                        new OA\Property(property: 'is_available', type: 'boolean', example: true),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 403, description: 'Forbidden'),
+            new OA\Response(response: 404, description: 'Product not found'),
+            new OA\Response(response: 422, description: 'Validation error or product already added'),
+        ]
+    )]
     public function store(StoreStoreProductRequest $request, Store $store): JsonResponse
     {
         $this->authorize('manageProducts', $store);
@@ -111,9 +201,37 @@ class StoreProductController extends Controller
             ->setStatusCode(Response::HTTP_CREATED);
     }
 
-    /**
-     * Display a specific store product.
-     */
+    #[OA\Get(
+        path: '/api/stores/{store}/products/{product}',
+        tags: ['Store Product'],
+        summary: 'Get a specific store product',
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'store', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'product', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Store product details',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'id', type: 'integer', example: 1),
+                        new OA\Property(property: 'product_id', type: 'integer', example: 5),
+                        new OA\Property(property: 'store_id', type: 'integer', example: 1),
+                        new OA\Property(property: 'stock', type: 'integer', example: 50),
+                        new OA\Property(property: 'min_stock', type: 'integer', example: 10),
+                        new OA\Property(property: 'max_stock', type: 'integer', example: 100),
+                        new OA\Property(property: 'price_override', type: 'integer', example: 1500, nullable: true),
+                        new OA\Property(property: 'is_available', type: 'boolean', example: true),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 403, description: 'Forbidden'),
+            new OA\Response(response: 404, description: 'Product not found in store'),
+        ]
+    )]
     public function show(Request $request, Store $store, Product $product): StoreProductResource|JsonResponse
     {
         $this->authorize('viewProducts', $store);
@@ -136,9 +254,45 @@ class StoreProductController extends Controller
         return new StoreProductResource($storeProduct);
     }
 
-    /**
-     * Update a store product.
-     */
+    #[OA\Patch(
+        path: '/api/stores/{store}/products/{product}',
+        tags: ['Store Product'],
+        summary: 'Update a store product',
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'store', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'product', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: 'stock', type: 'integer', example: 75),
+                    new OA\Property(property: 'min_stock', type: 'integer', example: 15),
+                    new OA\Property(property: 'max_stock', type: 'integer', example: 150),
+                    new OA\Property(property: 'price_override', type: 'integer', example: 1600),
+                    new OA\Property(property: 'is_available', type: 'boolean', example: true),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Store product updated',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'id', type: 'integer', example: 1),
+                        new OA\Property(property: 'stock', type: 'integer', example: 75),
+                        new OA\Property(property: 'is_available', type: 'boolean', example: true),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 403, description: 'Forbidden'),
+            new OA\Response(response: 404, description: 'Product not found in store'),
+            new OA\Response(response: 422, description: 'Validation error'),
+        ]
+    )]
     public function update(UpdateStoreProductRequest $request, Store $store, Product $product): StoreProductResource|JsonResponse
     {
         $this->authorize('manageProducts', $store);
@@ -160,9 +314,22 @@ class StoreProductController extends Controller
         return new StoreProductResource($storeProduct);
     }
 
-    /**
-     * Remove a product from a store.
-     */
+    #[OA\Delete(
+        path: '/api/stores/{store}/products/{product}',
+        tags: ['Store Product'],
+        summary: 'Remove a product from a store',
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'store', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'product', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 204, description: 'Product removed from store'),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 403, description: 'Forbidden'),
+            new OA\Response(response: 404, description: 'Product not found in store'),
+        ]
+    )]
     public function destroy(Request $request, Store $store, Product $product): Response|JsonResponse
     {
         $this->authorize('manageProducts', $store);

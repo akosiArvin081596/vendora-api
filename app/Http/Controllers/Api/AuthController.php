@@ -31,6 +31,10 @@ use OpenApi\Attributes as OA;
 #[OA\Tag(name: 'Customer', description: 'Customer endpoints')]
 #[OA\Tag(name: 'Order', description: 'Order endpoints')]
 #[OA\Tag(name: 'Payment', description: 'Payment endpoints')]
+#[OA\Tag(name: 'Dashboard', description: 'Dashboard endpoints')]
+#[OA\Tag(name: 'Store', description: 'Store endpoints')]
+#[OA\Tag(name: 'Store Product', description: 'Store product endpoints')]
+#[OA\Tag(name: 'Store Staff', description: 'Store staff endpoints')]
 class AuthController extends Controller
 {
     #[OA\Post(

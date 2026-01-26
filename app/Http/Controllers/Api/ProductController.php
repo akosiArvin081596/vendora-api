@@ -201,18 +201,22 @@ class ProductController extends Controller
         security: [['bearerAuth' => []]],
         requestBody: new OA\RequestBody(
             required: true,
-            content: new OA\JsonContent(
-                required: ['name', 'sku', 'category_id', 'price', 'currency', 'stock'],
-                properties: [
-                    new OA\Property(property: 'name', type: 'string', example: 'Premium Rice 5kg'),
-                    new OA\Property(property: 'sku', type: 'string', example: 'GR-1001'),
-                    new OA\Property(property: 'category_id', type: 'integer', example: 3),
-                    new OA\Property(property: 'price', type: 'integer', example: 1250),
-                    new OA\Property(property: 'currency', type: 'string', example: 'PHP'),
-                    new OA\Property(property: 'stock', type: 'integer', example: 18),
-                    new OA\Property(property: 'is_active', type: 'boolean', example: true),
-                    new OA\Property(property: 'is_ecommerce', type: 'boolean', example: true),
-                ]
+            content: new OA\MediaType(
+                mediaType: 'multipart/form-data',
+                schema: new OA\Schema(
+                    required: ['name', 'sku', 'category_id', 'price', 'currency', 'stock'],
+                    properties: [
+                        new OA\Property(property: 'name', type: 'string', example: 'Premium Rice 5kg'),
+                        new OA\Property(property: 'sku', type: 'string', example: 'GR-1001'),
+                        new OA\Property(property: 'category_id', type: 'integer', example: 3),
+                        new OA\Property(property: 'price', type: 'integer', example: 1250),
+                        new OA\Property(property: 'currency', type: 'string', example: 'PHP'),
+                        new OA\Property(property: 'stock', type: 'integer', example: 18),
+                        new OA\Property(property: 'is_active', type: 'boolean', example: true),
+                        new OA\Property(property: 'is_ecommerce', type: 'boolean', example: true),
+                        new OA\Property(property: 'image', type: 'string', format: 'binary', description: 'Product image file'),
+                    ]
+                )
             )
         ),
         responses: [
@@ -345,17 +349,21 @@ class ProductController extends Controller
         ],
         requestBody: new OA\RequestBody(
             required: true,
-            content: new OA\JsonContent(
-                properties: [
-                    new OA\Property(property: 'name', type: 'string', example: 'Premium Rice 5kg'),
-                    new OA\Property(property: 'sku', type: 'string', example: 'GR-1001'),
-                    new OA\Property(property: 'category_id', type: 'integer', example: 3),
-                    new OA\Property(property: 'price', type: 'integer', example: 1250),
-                    new OA\Property(property: 'currency', type: 'string', example: 'PHP'),
-                    new OA\Property(property: 'stock', type: 'integer', example: 18),
-                    new OA\Property(property: 'is_active', type: 'boolean', example: true),
-                    new OA\Property(property: 'is_ecommerce', type: 'boolean', example: true),
-                ]
+            content: new OA\MediaType(
+                mediaType: 'multipart/form-data',
+                schema: new OA\Schema(
+                    properties: [
+                        new OA\Property(property: 'name', type: 'string', example: 'Premium Rice 5kg'),
+                        new OA\Property(property: 'sku', type: 'string', example: 'GR-1001'),
+                        new OA\Property(property: 'category_id', type: 'integer', example: 3),
+                        new OA\Property(property: 'price', type: 'integer', example: 1250),
+                        new OA\Property(property: 'currency', type: 'string', example: 'PHP'),
+                        new OA\Property(property: 'stock', type: 'integer', example: 18),
+                        new OA\Property(property: 'is_active', type: 'boolean', example: true),
+                        new OA\Property(property: 'is_ecommerce', type: 'boolean', example: true),
+                        new OA\Property(property: 'image', type: 'string', format: 'binary', description: 'Product image file'),
+                    ]
+                )
             )
         ),
         responses: [
