@@ -464,6 +464,10 @@ class ProductController extends Controller
 
     protected function findProduct(Request $request, int $productId): Product
     {
+        if (! $request->user()?->isVendor()) {
+            abort(403);
+        }
+
         return Product::query()
             ->where('user_id', $request->user()->id)
             ->findOrFail($productId);

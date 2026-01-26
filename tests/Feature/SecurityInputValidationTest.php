@@ -18,7 +18,7 @@ uses(RefreshDatabase::class);
 
 describe('SQL Injection Prevention', function () {
     it('prevents SQL injection in product search', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->vendor()->create();
         Product::factory()->for($user)->create(['name' => 'Normal Product']);
 
         Sanctum::actingAs($user);
@@ -30,7 +30,7 @@ describe('SQL Injection Prevention', function () {
     });
 
     it('prevents SQL injection in customer search', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->vendor()->create();
         Customer::factory()->for($user)->create(['name' => 'Normal Customer']);
 
         Sanctum::actingAs($user);
@@ -43,7 +43,7 @@ describe('SQL Injection Prevention', function () {
     });
 
     it('prevents SQL injection in order number search', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->vendor()->create();
 
         Sanctum::actingAs($user);
 
@@ -53,7 +53,7 @@ describe('SQL Injection Prevention', function () {
     });
 
     it('prevents SQL injection in sort parameter', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->vendor()->create();
         Product::factory()->for($user)->create();
 
         Sanctum::actingAs($user);
@@ -68,7 +68,7 @@ describe('SQL Injection Prevention', function () {
 
 describe('XSS Prevention', function () {
     it('stores XSS payload as plain text in product name', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->vendor()->create();
         $category = Category::factory()->create();
 
         Sanctum::actingAs($user);
@@ -90,7 +90,7 @@ describe('XSS Prevention', function () {
     });
 
     it('stores XSS payload as plain text in customer name', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->vendor()->create();
 
         Sanctum::actingAs($user);
 
@@ -109,7 +109,7 @@ describe('XSS Prevention', function () {
 
 describe('Integer Overflow Prevention', function () {
     it('rejects extremely large price values', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->vendor()->create();
         $category = Category::factory()->create();
 
         Sanctum::actingAs($user);
@@ -126,7 +126,7 @@ describe('Integer Overflow Prevention', function () {
     });
 
     it('rejects negative stock values', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->vendor()->create();
         $category = Category::factory()->create();
 
         Sanctum::actingAs($user);
@@ -144,7 +144,7 @@ describe('Integer Overflow Prevention', function () {
     });
 
     it('rejects negative payment amount', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->vendor()->create();
         $order = Order::factory()->for($user)->create();
 
         Sanctum::actingAs($user);
@@ -160,7 +160,7 @@ describe('Integer Overflow Prevention', function () {
     });
 
     it('rejects zero payment amount', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->vendor()->create();
         $order = Order::factory()->for($user)->create();
 
         Sanctum::actingAs($user);
@@ -178,7 +178,7 @@ describe('Integer Overflow Prevention', function () {
 
 describe('Business Logic Validation', function () {
     it('prevents ordering more than available stock', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->vendor()->create();
         $customer = Customer::factory()->for($user)->create();
         $product = Product::factory()->for($user)->create(['stock' => 5]);
 
@@ -195,7 +195,7 @@ describe('Business Logic Validation', function () {
     });
 
     it('prevents inventory adjustment resulting in negative stock', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->vendor()->create();
         $product = Product::factory()->for($user)->create(['stock' => 10]);
 
         Sanctum::actingAs($user);
@@ -211,7 +211,7 @@ describe('Business Logic Validation', function () {
     });
 
     it('rejects invalid order status', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->vendor()->create();
         $order = Order::factory()->for($user)->create();
 
         Sanctum::actingAs($user);
@@ -225,7 +225,7 @@ describe('Business Logic Validation', function () {
     });
 
     it('rejects invalid payment method', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->vendor()->create();
         $order = Order::factory()->for($user)->create();
 
         Sanctum::actingAs($user);
@@ -243,7 +243,7 @@ describe('Business Logic Validation', function () {
 
 describe('Type Coercion Protection', function () {
     it('rejects array where string expected', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->vendor()->create();
         $category = Category::factory()->create();
 
         Sanctum::actingAs($user);
@@ -261,7 +261,7 @@ describe('Type Coercion Protection', function () {
     });
 
     it('rejects string where integer expected', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->vendor()->create();
         $category = Category::factory()->create();
 
         Sanctum::actingAs($user);
@@ -279,7 +279,7 @@ describe('Type Coercion Protection', function () {
     });
 
     it('rejects object where integer expected for category_id', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->vendor()->create();
 
         Sanctum::actingAs($user);
 
@@ -298,7 +298,7 @@ describe('Type Coercion Protection', function () {
 
 describe('Length Limits', function () {
     it('rejects overly long product name', function () {
-        $user = User::factory()->create();
+        $user = User::factory()->vendor()->create();
         $category = Category::factory()->create();
 
         Sanctum::actingAs($user);

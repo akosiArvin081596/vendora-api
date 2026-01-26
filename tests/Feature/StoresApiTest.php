@@ -391,7 +391,7 @@ it('returns available roles', function () {
 // Store Products Tests
 
 it('lists products at a store', function () {
-    $owner = User::factory()->create();
+    $owner = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     $store = Store::factory()->for($owner)->create();
     $product = Product::factory()->for($owner)->for($category)->create(['is_active' => true]);
@@ -414,7 +414,7 @@ it('lists products at a store', function () {
 });
 
 it('adds a product to store', function () {
-    $owner = User::factory()->create();
+    $owner = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     $store = Store::factory()->for($owner)->create();
     $product = Product::factory()->for($owner)->for($category)->create(['is_active' => true]);
@@ -443,8 +443,8 @@ it('adds a product to store', function () {
 });
 
 it('cannot add product that does not belong to owner', function () {
-    $owner = User::factory()->create();
-    $otherUser = User::factory()->create();
+    $owner = User::factory()->vendor()->create();
+    $otherUser = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     $store = Store::factory()->for($owner)->create();
     $product = Product::factory()->for($otherUser)->for($category)->create(['is_active' => true]);
@@ -460,7 +460,7 @@ it('cannot add product that does not belong to owner', function () {
 });
 
 it('updates store product', function () {
-    $owner = User::factory()->create();
+    $owner = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     $store = Store::factory()->for($owner)->create();
     $product = Product::factory()->for($owner)->for($category)->create(['is_active' => true]);
@@ -492,7 +492,7 @@ it('updates store product', function () {
 });
 
 it('removes product from store', function () {
-    $owner = User::factory()->create();
+    $owner = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     $store = Store::factory()->for($owner)->create();
     $product = Product::factory()->for($owner)->for($category)->create(['is_active' => true]);

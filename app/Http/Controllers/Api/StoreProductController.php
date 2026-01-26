@@ -332,6 +332,10 @@ class StoreProductController extends Controller
     )]
     public function destroy(Request $request, Store $store, Product $product): Response|JsonResponse
     {
+        if (! $request->user()?->isVendor()) {
+            abort(403);
+        }
+
         $this->authorize('manageProducts', $store);
 
         $storeProduct = StoreProduct::query()

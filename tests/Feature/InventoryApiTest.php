@@ -9,8 +9,8 @@ use Laravel\Sanctum\Sanctum;
 uses(RefreshDatabase::class);
 
 it('lists inventory items for the authenticated user', function () {
-    $user = User::factory()->create();
-    $otherUser = User::factory()->create();
+    $user = User::factory()->vendor()->create();
+    $otherUser = User::factory()->vendor()->create();
     $category = Category::factory()->create();
 
     $product = Product::factory()->for($user)->for($category)->create();
@@ -30,7 +30,7 @@ it('lists inventory items for the authenticated user', function () {
 });
 
 it('filters inventory by search term', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
 
     $product1 = Product::factory()->for($user)->for($category)->create(['name' => 'Premium Rice']);
@@ -46,7 +46,7 @@ it('filters inventory by search term', function () {
 });
 
 it('filters inventory by sku', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
 
     $product1 = Product::factory()->for($user)->for($category)->create(['sku' => 'ABC-123']);
@@ -62,7 +62,7 @@ it('filters inventory by sku', function () {
 });
 
 it('filters inventory by in_stock status', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
 
     $product1 = Product::factory()->for($user)->for($category)->create([
@@ -88,7 +88,7 @@ it('filters inventory by in_stock status', function () {
 });
 
 it('filters inventory by low_stock status', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
 
     Product::factory()->for($user)->for($category)->create([
@@ -114,7 +114,7 @@ it('filters inventory by low_stock status', function () {
 });
 
 it('filters inventory by out_of_stock status', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
 
     Product::factory()->for($user)->for($category)->create([
@@ -140,7 +140,7 @@ it('filters inventory by out_of_stock status', function () {
 });
 
 it('returns inventory summary', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
 
     Product::factory()->for($user)->for($category)->count(5)->create([
@@ -166,8 +166,25 @@ it('returns inventory summary', function () {
     $response->assertJsonPath('data.out_of_stock_items', 2);
 });
 
+it('forbids non-vendors from adjusting inventory', function () {
+    $user = User::factory()->buyer()->create();
+    $category = Category::factory()->create();
+    $product = Product::factory()->for($user)->for($category)->create(['stock' => 10]);
+
+    Sanctum::actingAs($user);
+
+    $response = $this->postJson('/api/inventory/adjustments', [
+        'product_id' => $product->id,
+        'type' => 'add',
+        'quantity' => 5,
+    ]);
+
+    $response->assertForbidden();
+    expect($product->fresh()->stock)->toBe(10);
+});
+
 it('adds stock via adjustment', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     $product = Product::factory()->for($user)->for($category)->create(['stock' => 10]);
 
@@ -201,7 +218,7 @@ it('adds stock via adjustment', function () {
 });
 
 it('removes stock via adjustment', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     $product = Product::factory()->for($user)->for($category)->create(['stock' => 20]);
 
@@ -232,7 +249,7 @@ it('removes stock via adjustment', function () {
 });
 
 it('sets stock via adjustment', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     $product = Product::factory()->for($user)->for($category)->create(['stock' => 50]);
 
@@ -263,7 +280,7 @@ it('sets stock via adjustment', function () {
 });
 
 it('validates required fields when creating adjustment', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
 
     Sanctum::actingAs($user);
 
@@ -274,7 +291,7 @@ it('validates required fields when creating adjustment', function () {
 });
 
 it('validates type is valid', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     $product = Product::factory()->for($user)->for($category)->create();
 
@@ -291,7 +308,7 @@ it('validates type is valid', function () {
 });
 
 it('prevents removing more than current stock', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     $product = Product::factory()->for($user)->for($category)->create(['stock' => 5]);
 
@@ -308,8 +325,8 @@ it('prevents removing more than current stock', function () {
 });
 
 it('cannot adjust another users product', function () {
-    $user = User::factory()->create();
-    $otherUser = User::factory()->create();
+    $user = User::factory()->vendor()->create();
+    $otherUser = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     $product = Product::factory()->for($otherUser)->for($category)->create();
 

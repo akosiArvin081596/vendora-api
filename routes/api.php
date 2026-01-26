@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\Admin\VendorController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
@@ -91,6 +92,15 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Admin Routes
     Route::prefix('admin')->group(function () {
+        // User Management
+        Route::get('/users', [AdminUserController::class, 'index'])->name('admin.users.index');
+        Route::post('/users', [AdminUserController::class, 'store'])->name('admin.users.store');
+        Route::get('/users/{user}', [AdminUserController::class, 'show'])->name('admin.users.show');
+        Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('admin.users.update');
+        Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->name('admin.users.destroy');
+        Route::patch('/users/{user}/status', [AdminUserController::class, 'updateStatus'])->name('admin.users.status');
+
+        // Vendor Management
         Route::post('/vendors', [VendorController::class, 'store'])->name('admin.vendors.store');
     });
 });

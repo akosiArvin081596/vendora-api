@@ -20,7 +20,9 @@ return new class extends Migration
         // For each existing user with products or orders, create a default store
         User::query()
             ->where(function ($query) {
-                $query->whereHas('products')
+                $query->whereHas('products', function ($query) {
+                    $query->withTrashed();
+                })
                     ->orWhereHas('orders')
                     ->orWhereHas('customers');
             })
@@ -36,7 +38,7 @@ return new class extends Migration
                         ]);
 
                         // Migrate product stock to store_products
-                        $user->products()->each(function (Product $product) use ($store) {
+                        $user->products()->withTrashed()->each(function (Product $product) use ($store) {
                             StoreProduct::create([
                                 'store_id' => $store->id,
                                 'product_id' => $product->id,

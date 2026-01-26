@@ -15,7 +15,7 @@ beforeEach(function () {
 });
 
 it('creates a product with an image', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
 
     Sanctum::actingAs($user);
@@ -48,7 +48,7 @@ it('creates a product with an image', function () {
 });
 
 it('creates a product without an image', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
 
     Sanctum::actingAs($user);
@@ -73,7 +73,7 @@ it('creates a product without an image', function () {
 });
 
 it('updates a product with a new image', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     $product = Product::factory()->for($user)->for($category)->create();
 
@@ -99,7 +99,7 @@ it('updates a product with a new image', function () {
 });
 
 it('replaces existing image when updating', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
 
     $oldImage = UploadedFile::fake()->image('old.jpg');
@@ -130,7 +130,7 @@ it('replaces existing image when updating', function () {
 });
 
 it('returns full image URL in product resource', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
 
     $image = UploadedFile::fake()->image('test.jpg');
@@ -148,7 +148,7 @@ it('returns full image URL in product resource', function () {
 });
 
 it('validates image file type', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
 
     Sanctum::actingAs($user);
@@ -173,7 +173,7 @@ it('validates image file type', function () {
 });
 
 it('validates image file size', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
 
     Sanctum::actingAs($user);

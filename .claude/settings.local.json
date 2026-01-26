@@ -29,7 +29,9 @@
       "WebSearch",
       "WebFetch(domain:medium.com)",
       "WebFetch(domain:bobbyhadz.com)",
-      "Bash(powershell -Command \"$payload = ''{\"\"event\"\":\"\"product:created\"\",\"\"data\"\":{\"\"id\"\":999,\"\"name\"\":\"\"Test Product\"\"}}''; $secret = ''ARVIN''; $hmac = New-Object System.Security.Cryptography.HMACSHA256; $hmac.Key = [Text.Encoding]::UTF8.GetBytes\\($secret\\); $hash = $hmac.ComputeHash\\([Text.Encoding]::UTF8.GetBytes\\($payload\\)\\); $signature = [BitConverter]::ToString\\($hash\\).Replace\\(''-'',''''\\).ToLower\\(\\); Write-Host \"\"Signature: $signature\"\"; curl -s -X POST http://76.13.22.110:3001/webhook/events -H ''Content-Type: application/json'' -H \"\"X-Webhook-Signature: $signature\"\" -d $payload\")"
+      "Bash(powershell -Command \"$payload = ''{\"\"event\"\":\"\"product:created\"\",\"\"data\"\":{\"\"id\"\":999,\"\"name\"\":\"\"Test Product\"\"}}''; $secret = ''ARVIN''; $hmac = New-Object System.Security.Cryptography.HMACSHA256; $hmac.Key = [Text.Encoding]::UTF8.GetBytes\\($secret\\); $hash = $hmac.ComputeHash\\([Text.Encoding]::UTF8.GetBytes\\($payload\\)\\); $signature = [BitConverter]::ToString\\($hash\\).Replace\\(''-'',''''\\).ToLower\\(\\); Write-Host \"\"Signature: $signature\"\"; curl -s -X POST http://76.13.22.110:3001/webhook/events -H ''Content-Type: application/json'' -H \"\"X-Webhook-Signature: $signature\"\" -d $payload\")",
+      "Bash(find:*)",
+      "Bash(xargs:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

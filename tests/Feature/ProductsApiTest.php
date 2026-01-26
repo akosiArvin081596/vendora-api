@@ -9,8 +9,8 @@ use Laravel\Sanctum\Sanctum;
 uses(RefreshDatabase::class);
 
 it('lists products filtered by user_id', function () {
-    $user = User::factory()->create();
-    $otherUser = User::factory()->create();
+    $user = User::factory()->vendor()->create();
+    $otherUser = User::factory()->vendor()->create();
     $category = Category::factory()->create();
 
     $product = Product::factory()->for($user)->for($category)->create(['is_active' => true]);
@@ -30,7 +30,7 @@ it('lists products filtered by user_id', function () {
 });
 
 it('filters products by search term', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
 
     $product1 = Product::factory()->for($user)->for($category)->create([
@@ -52,7 +52,7 @@ it('filters products by search term', function () {
 });
 
 it('filters products by category', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category1 = Category::factory()->create(['name' => 'Electronics']);
     $category2 = Category::factory()->create(['name' => 'Groceries']);
 
@@ -69,7 +69,7 @@ it('filters products by category', function () {
 });
 
 it('filters products by price range', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
 
     $product1 = Product::factory()->for($user)->for($category)->create(['price' => 500, 'is_active' => true]);
@@ -86,7 +86,7 @@ it('filters products by price range', function () {
 });
 
 it('filters products by in stock status', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
 
     $product1 = Product::factory()->for($user)->for($category)->create(['stock' => 10, 'is_active' => true]);
@@ -102,7 +102,7 @@ it('filters products by in stock status', function () {
 });
 
 it('creates a product', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
 
     Sanctum::actingAs($user);
@@ -132,8 +132,28 @@ it('creates a product', function () {
     ]);
 });
 
+it('forbids non-vendors from creating a product', function () {
+    $user = User::factory()->buyer()->create();
+    $category = Category::factory()->create();
+
+    Sanctum::actingAs($user);
+
+    $response = $this->postJson('/api/products', [
+        'name' => 'Test Product',
+        'sku' => 'TST-002',
+        'category_id' => $category->id,
+        'price' => 1500,
+        'currency' => 'PHP',
+        'stock' => 50,
+        'min_stock' => 10,
+        'max_stock' => 100,
+    ]);
+
+    $response->assertForbidden();
+});
+
 it('validates required fields when creating a product', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
 
     Sanctum::actingAs($user);
 
@@ -144,7 +164,7 @@ it('validates required fields when creating a product', function () {
 });
 
 it('prevents duplicate SKU for the same user', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
 
     Product::factory()->for($user)->for($category)->create(['sku' => 'DUPLICATE']);
@@ -165,7 +185,7 @@ it('prevents duplicate SKU for the same user', function () {
 });
 
 it('shows an active product', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     $product = Product::factory()->for($user)->for($category)->create(['is_active' => true]);
 
@@ -186,7 +206,7 @@ it('returns 404 for non-existent product', function () {
 });
 
 it('returns 404 for inactive product on public show', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     $product = Product::factory()->for($user)->for($category)->create(['is_active' => false]);
 
@@ -196,7 +216,7 @@ it('returns 404 for inactive product on public show', function () {
 });
 
 it('updates a product', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     $product = Product::factory()->for($user)->for($category)->create();
 
@@ -221,8 +241,8 @@ it('updates a product', function () {
 });
 
 it('cannot update another users product', function () {
-    $user = User::factory()->create();
-    $otherUser = User::factory()->create();
+    $user = User::factory()->vendor()->create();
+    $otherUser = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     $product = Product::factory()->for($otherUser)->for($category)->create();
 
@@ -236,7 +256,7 @@ it('cannot update another users product', function () {
 });
 
 it('deletes a product', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     $product = Product::factory()->for($user)->for($category)->create();
 
@@ -250,8 +270,8 @@ it('deletes a product', function () {
 });
 
 it('cannot delete another users product', function () {
-    $user = User::factory()->create();
-    $otherUser = User::factory()->create();
+    $user = User::factory()->vendor()->create();
+    $otherUser = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     $product = Product::factory()->for($otherUser)->for($category)->create();
 
@@ -265,7 +285,7 @@ it('cannot delete another users product', function () {
 });
 
 it('allows public access to products list', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     Product::factory()->for($user)->for($category)->create(['is_active' => true]);
 

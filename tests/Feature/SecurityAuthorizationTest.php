@@ -35,8 +35,8 @@ describe('Product Authorization', function () {
     });
 
     it('prevents user from updating another user\'s product', function () {
-        $user = User::factory()->create();
-        $otherUser = User::factory()->create();
+        $user = User::factory()->vendor()->create();
+        $otherUser = User::factory()->vendor()->create();
         $otherProduct = Product::factory()->for($otherUser)->create([
             'is_active' => true,
             'is_ecommerce' => false,
@@ -56,8 +56,8 @@ describe('Product Authorization', function () {
     });
 
     it('prevents user from deleting another user\'s product', function () {
-        $user = User::factory()->create();
-        $otherUser = User::factory()->create();
+        $user = User::factory()->vendor()->create();
+        $otherUser = User::factory()->vendor()->create();
         $otherProduct = Product::factory()->for($otherUser)->create([
             'is_active' => true,
             'is_ecommerce' => false,
@@ -286,8 +286,8 @@ describe('Payment Authorization', function () {
 
 describe('Inventory Authorization', function () {
     it('prevents user from adjusting another user\'s product inventory', function () {
-        $user = User::factory()->create();
-        $otherUser = User::factory()->create();
+        $user = User::factory()->vendor()->create();
+        $otherUser = User::factory()->vendor()->create();
         $otherProduct = Product::factory()->for($otherUser)->create(['stock' => 50]);
 
         Sanctum::actingAs($user);

@@ -9,7 +9,7 @@ use Laravel\Sanctum\Sanctum;
 uses(RefreshDatabase::class);
 
 it('gets a product by SKU', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     $product = Product::factory()->for($user)->for($category)->create(['sku' => 'TST-001']);
 
@@ -25,7 +25,7 @@ it('gets a product by SKU', function () {
 });
 
 it('returns 404 for non-existent SKU', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
 
     Sanctum::actingAs($user);
 
@@ -35,8 +35,8 @@ it('returns 404 for non-existent SKU', function () {
 });
 
 it('cannot get another users product by SKU', function () {
-    $user = User::factory()->create();
-    $otherUser = User::factory()->create();
+    $user = User::factory()->vendor()->create();
+    $otherUser = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     Product::factory()->for($otherUser)->for($category)->create(['sku' => 'OTHER-001']);
 
@@ -48,7 +48,7 @@ it('cannot get another users product by SKU', function () {
 });
 
 it('gets a product by barcode', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     $product = Product::factory()->for($user)->for($category)->create(['barcode' => '4801234567890']);
 
@@ -64,7 +64,7 @@ it('gets a product by barcode', function () {
 });
 
 it('returns 404 for non-existent barcode', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
 
     Sanctum::actingAs($user);
 
@@ -74,7 +74,7 @@ it('returns 404 for non-existent barcode', function () {
 });
 
 it('updates product stock directly', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     $product = Product::factory()->for($user)->for($category)->create(['stock' => 50]);
 
@@ -96,7 +96,7 @@ it('updates product stock directly', function () {
 });
 
 it('validates stock update requires positive integer', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     $product = Product::factory()->for($user)->for($category)->create();
 
@@ -111,7 +111,7 @@ it('validates stock update requires positive integer', function () {
 });
 
 it('decrements stock for multiple products in bulk', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     $product1 = Product::factory()->for($user)->for($category)->create(['stock' => 100]);
     $product2 = Product::factory()->for($user)->for($category)->create(['stock' => 50]);
@@ -143,7 +143,7 @@ it('decrements stock for multiple products in bulk', function () {
 });
 
 it('returns error for insufficient stock in bulk decrement', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     $product = Product::factory()->for($user)->for($category)->create(['stock' => 5]);
 
@@ -168,7 +168,7 @@ it('returns error for insufficient stock in bulk decrement', function () {
 });
 
 it('filters products by stock_lte', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     Product::factory()->for($user)->for($category)->create(['stock' => 5]);
     Product::factory()->for($user)->for($category)->create(['stock' => 50]);
@@ -182,7 +182,7 @@ it('filters products by stock_lte', function () {
 });
 
 it('filters products by stock_gte', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     Product::factory()->for($user)->for($category)->create(['stock' => 5]);
     Product::factory()->for($user)->for($category)->create(['stock' => 50]);
@@ -196,7 +196,7 @@ it('filters products by stock_gte', function () {
 });
 
 it('filters products by has_barcode', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     Product::factory()->for($user)->for($category)->create(['barcode' => '1234567890123']);
     Product::factory()->for($user)->for($category)->create(['barcode' => null]);
@@ -210,7 +210,7 @@ it('filters products by has_barcode', function () {
 });
 
 it('filters products by is_active', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     Product::factory()->for($user)->for($category)->create(['is_active' => true]);
     Product::factory()->for($user)->for($category)->create(['is_active' => false]);
@@ -224,7 +224,7 @@ it('filters products by is_active', function () {
 });
 
 it('filters products by category slug', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category1 = Category::factory()->create(['slug' => 'electronics']);
     $category2 = Category::factory()->create(['slug' => 'groceries']);
     $product1 = Product::factory()->for($user)->for($category1)->create();
@@ -240,7 +240,7 @@ it('filters products by category slug', function () {
 });
 
 it('returns new product fields in response', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     $product = Product::factory()->for($user)->for($category)->create([
         'description' => 'Test description',
@@ -268,7 +268,7 @@ it('returns new product fields in response', function () {
 });
 
 it('creates product with new fields', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
 
     Sanctum::actingAs($user);
@@ -310,7 +310,7 @@ it('creates product with new fields', function () {
 });
 
 it('soft deletes products', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
     $product = Product::factory()->for($user)->for($category)->create();
 
