@@ -7,6 +7,7 @@ use App\Http\Requests\StoreInventoryAdjustmentRequest;
 use App\Http\Resources\InventoryResource;
 use App\Http\Resources\InventorySummaryResource;
 use App\Models\InventoryAdjustment;
+use App\Models\LedgerEntry;
 use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -225,7 +226,7 @@ class InventoryController extends Controller
         $adjustment = DB::transaction(function () use ($request, $product, $type, $quantity, $stockBefore, $stockAfter, $data) {
             $product->update(['stock' => $stockAfter]);
 
-            return InventoryAdjustment::query()->create([
+            $adjustment = InventoryAdjustment::query()->create([
                 'user_id' => $request->user()->id,
                 'product_id' => $product->id,
                 'type' => $type,
@@ -234,6 +235,32 @@ class InventoryController extends Controller
                 'stock_after' => $stockAfter,
                 'note' => $data['note'] ?? null,
             ]);
+
+            // Create ledger entry for the stock adjustment
+            $ledgerType = match ($type) {
+                'add' => 'stock_in',
+                'remove' => 'stock_out',
+                default => 'adjustment',
+            };
+
+            $ledgerQty = match ($type) {
+                'add' => $quantity,
+                'remove' => -$quantity,
+                'set' => $stockAfter - $stockBefore,
+            };
+
+            LedgerEntry::query()->create([
+                'user_id' => $request->user()->id,
+                'product_id' => $product->id,
+                'type' => $ledgerType,
+                'category' => 'inventory',
+                'quantity' => $ledgerQty,
+                'balance_qty' => $stockAfter,
+                'reference' => 'ADJ-'.$adjustment->id,
+                'description' => ($data['note'] ?? 'Stock adjustment').' ('.$type.' '.$quantity.')',
+            ]);
+
+            return $adjustment;
         });
 
         return response()->json([

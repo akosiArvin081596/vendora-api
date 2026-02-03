@@ -9,6 +9,7 @@ use App\Http\Requests\UpdateProductRequest;
 use App\Http\Requests\UpdateProductStockRequest;
 use App\Http\Resources\ProductResource;
 use App\Models\Category;
+use App\Models\LedgerEntry;
 use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -284,6 +285,19 @@ class ProductController extends Controller
                     'price' => $this->normalizeMoney($tier['price']),
                 ]);
             }
+        }
+
+        // Create ledger entry for initial stock
+        if ($product->stock > 0) {
+            LedgerEntry::query()->create([
+                'user_id' => $request->user()->id,
+                'product_id' => $product->id,
+                'type' => 'stock_in',
+                'category' => 'inventory',
+                'quantity' => $product->stock,
+                'balance_qty' => $product->stock,
+                'description' => 'Initial stock for new product: '.$product->name,
+            ]);
         }
 
         return (new ProductResource($product->load(['category', 'bulkPrices'])))
@@ -685,5 +699,124 @@ class ProductController extends Controller
                 'errors' => $errors,
             ],
         ]);
+    }
+
+    #[OA\Get(
+        path: '/api/products/my',
+        tags: ['Product'],
+        summary: 'List authenticated user\'s products (for POS)',
+        description: 'Authenticated endpoint for POS mode. Returns only products owned by the logged-in user.',
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'search', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'category_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'min_price', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'max_price', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'in_stock', in: 'query', required: false, schema: new OA\Schema(type: 'boolean')),
+            new OA\Parameter(name: 'is_active', in: 'query', required: false, schema: new OA\Schema(type: 'boolean')),
+            new OA\Parameter(name: 'sort', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'direction', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'page', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'per_page', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Product list',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(
+                                properties: [
+                                    new OA\Property(property: 'id', type: 'integer', example: 1),
+                                    new OA\Property(property: 'name', type: 'string', example: 'Premium Rice 5kg'),
+                                    new OA\Property(property: 'sku', type: 'string', example: 'GR-1001'),
+                                    new OA\Property(property: 'price', type: 'integer', example: 1250),
+                                    new OA\Property(property: 'stock', type: 'integer', example: 18),
+                                ]
+                            )
+                        ),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+        ]
+    )]
+    public function my(Request $request): AnonymousResourceCollection
+    {
+        $query = Product::query()
+            ->with(['category', 'bulkPrices'])
+            ->where('user_id', $request->user()->id);
+
+        $search = $request->string('search')->trim();
+        if ($search->isNotEmpty()) {
+            $term = '%'.$search->value().'%';
+            $query->where(function ($query) use ($term) {
+                $query->where('name', 'like', $term)
+                    ->orWhere('sku', 'like', $term)
+                    ->orWhere('barcode', 'like', $term)
+                    ->orWhereHas('category', function ($query) use ($term) {
+                        $query->where('name', 'like', $term);
+                    });
+            });
+        }
+
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->integer('category_id'));
+        }
+
+        if ($request->filled('min_price')) {
+            $query->where('price', '>=', $request->integer('min_price'));
+        }
+
+        if ($request->filled('max_price')) {
+            $query->where('price', '<=', $request->integer('max_price'));
+        }
+
+        if ($request->filled('in_stock')) {
+            $inStock = filter_var($request->input('in_stock'), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            if ($inStock === true) {
+                $query->where('stock', '>', 0);
+            }
+            if ($inStock === false) {
+                $query->where('stock', '=', 0);
+            }
+        }
+
+        if ($request->filled('is_active')) {
+            $isActive = filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            if ($isActive !== null) {
+                $query->where('is_active', $isActive);
+            }
+        }
+
+        if ($request->filled('category')) {
+            $categorySlug = $request->string('category')->value();
+            $category = Category::query()->where('slug', $categorySlug)->first();
+            if ($category) {
+                $query->where('category_id', $category->id);
+            }
+        }
+
+        $allowedSorts = ['name', 'price', 'stock', 'created_at'];
+        $sort = $request->string('sort')->value();
+        $direction = strtolower($request->string('direction', 'desc')->value());
+
+        if (! in_array($sort, $allowedSorts, true)) {
+            $sort = 'created_at';
+        }
+
+        if (! in_array($direction, ['asc', 'desc'], true)) {
+            $direction = 'desc';
+        }
+
+        $perPage = $request->integer('per_page', 15);
+        $perPage = max(1, min(100, $perPage));
+
+        $products = $query->orderBy($sort, $direction)->paginate($perPage);
+
+        return ProductResource::collection($products);
     }
 }

@@ -345,3 +345,101 @@ it('allows public access to products list', function () {
     $response->assertSuccessful();
     $response->assertJsonCount(1, 'data');
 });
+
+it('returns only authenticated users products on /products/my endpoint', function () {
+    $user = User::factory()->vendor()->create();
+    $otherUser = User::factory()->vendor()->create();
+    $category = Category::factory()->create();
+
+    $myProduct1 = Product::factory()->for($user)->for($category)->create(['is_active' => true]);
+    $myProduct2 = Product::factory()->for($user)->for($category)->create(['is_active' => true]);
+    Product::factory()->for($otherUser)->for($category)->create(['is_active' => true]);
+    Product::factory()->for($otherUser)->for($category)->create(['is_active' => true]);
+
+    Sanctum::actingAs($user);
+
+    $response = $this->getJson('/api/products/my');
+
+    $response->assertSuccessful();
+    $response->assertJsonCount(2, 'data');
+    $response->assertJsonFragment(['id' => $myProduct1->id]);
+    $response->assertJsonFragment(['id' => $myProduct2->id]);
+});
+
+it('requires authentication for /products/my endpoint', function () {
+    $response = $this->getJson('/api/products/my');
+
+    $response->assertUnauthorized();
+});
+
+it('filters my products by search term', function () {
+    $user = User::factory()->vendor()->create();
+    $category = Category::factory()->create();
+
+    $product1 = Product::factory()->for($user)->for($category)->create([
+        'name' => 'Apple iPhone',
+        'is_active' => true,
+    ]);
+    Product::factory()->for($user)->for($category)->create([
+        'name' => 'Samsung Galaxy',
+        'is_active' => true,
+    ]);
+
+    Sanctum::actingAs($user);
+
+    $response = $this->getJson('/api/products/my?search=iPhone');
+
+    $response->assertSuccessful();
+    $response->assertJsonCount(1, 'data');
+    $response->assertJsonFragment(['id' => $product1->id]);
+});
+
+it('filters my products by category', function () {
+    $user = User::factory()->vendor()->create();
+    $category1 = Category::factory()->create(['name' => 'Electronics']);
+    $category2 = Category::factory()->create(['name' => 'Groceries']);
+
+    $product1 = Product::factory()->for($user)->for($category1)->create(['is_active' => true]);
+    Product::factory()->for($user)->for($category2)->create(['is_active' => true]);
+
+    Sanctum::actingAs($user);
+
+    $response = $this->getJson('/api/products/my?category_id='.$category1->id);
+
+    $response->assertSuccessful();
+    $response->assertJsonCount(1, 'data');
+    $response->assertJsonFragment(['id' => $product1->id]);
+});
+
+it('includes inactive products on /products/my endpoint', function () {
+    $user = User::factory()->vendor()->create();
+    $category = Category::factory()->create();
+
+    $activeProduct = Product::factory()->for($user)->for($category)->create(['is_active' => true]);
+    $inactiveProduct = Product::factory()->for($user)->for($category)->create(['is_active' => false]);
+
+    Sanctum::actingAs($user);
+
+    $response = $this->getJson('/api/products/my');
+
+    $response->assertSuccessful();
+    $response->assertJsonCount(2, 'data');
+    $response->assertJsonFragment(['id' => $activeProduct->id]);
+    $response->assertJsonFragment(['id' => $inactiveProduct->id]);
+});
+
+it('can filter my products by is_active status', function () {
+    $user = User::factory()->vendor()->create();
+    $category = Category::factory()->create();
+
+    $activeProduct = Product::factory()->for($user)->for($category)->create(['is_active' => true]);
+    Product::factory()->for($user)->for($category)->create(['is_active' => false]);
+
+    Sanctum::actingAs($user);
+
+    $response = $this->getJson('/api/products/my?is_active=true');
+
+    $response->assertSuccessful();
+    $response->assertJsonCount(1, 'data');
+    $response->assertJsonFragment(['id' => $activeProduct->id]);
+});

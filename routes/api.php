@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\InventoryController;
+use App\Http\Controllers\Api\LedgerController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ProductController;
@@ -33,12 +34,17 @@ Route::prefix('auth')->group(function () {
 Route::get('/products', [ProductController::class, 'index'])->name('products.index');
 Route::get('/products/sku/{sku}', [ProductController::class, 'showBySku'])->name('products.showBySku');
 Route::get('/products/barcode/{code}', [ProductController::class, 'showByBarcode'])->name('products.showByBarcode');
+
+// POS endpoint - returns only authenticated user's products (must be before {product} route)
+Route::get('/products/my', [ProductController::class, 'my'])->middleware('auth:sanctum')->name('products.my');
+
 Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
 Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
 Route::get('/categories/{category}', [CategoryController::class, 'show'])->name('categories.show');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [UserController::class, 'show'])->name('user');
+
     Route::prefix('dashboard')->group(function () {
         Route::get('/kpis', [DashboardController::class, 'kpis'])->name('dashboard.kpis');
         Route::get('/sales-trend', [DashboardController::class, 'salesTrend'])->name('dashboard.sales-trend');
@@ -64,6 +70,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
     Route::patch('/categories/{category}', [CategoryController::class, 'update']);
     Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
+
+    Route::get('/ledger', [LedgerController::class, 'index'])->name('ledger.index');
+    Route::get('/ledger/summary', [LedgerController::class, 'summary'])->name('ledger.summary');
+    Route::post('/ledger', [LedgerController::class, 'store'])->name('ledger.store');
 
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
     Route::get('/inventory/summary', [InventoryController::class, 'summary'])->name('inventory.summary');

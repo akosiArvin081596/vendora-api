@@ -1,251 +1,522 @@
-# VENDORA Backend Overview
+# VENDORA - Full Stack Project Overview
 
-Last reviewed: 2026-01-12
-Last updated by: Codex
-Last updated on: 2026-01-12
+> **Last updated:** 2026-02-02
+> Auto-generated reference for onboarding new conversations and future development.
 
-## Purpose and scope
-- API-first Laravel backend for a vendor/store management system.
-- Primary domains: products, inventory, customers, orders, payments, stores, staff, and dashboard analytics.
-- Authentication is token-based (Laravel Sanctum) and the API is documented using OpenAPI annotations (L5 Swagger).
+---
 
-## Tech stack and tooling
-- PHP 8.4.15, Laravel 12.46.0
-- Database: MySQL (per application info)
-- Auth: Laravel Sanctum (personal access tokens)
-- API docs: darkaonline/l5-swagger (OpenAPI attributes in controllers)
-- Testing: Pest 4 + Laravel testing utilities
-- Frontend tooling (minimal): Vite 7, Tailwind CSS 4, laravel-vite-plugin
+## Architecture Summary
 
-## Repo structure (high-level)
-- `app/Enums`: Store roles and permissions
-- `app/Http/Controllers/Api`: API endpoints for auth, products, orders, etc.
-- `app/Http/Requests`: Form Requests for validation
-- `app/Http/Resources`: API Resource transformers for JSON output
-- `app/Http/Middleware`: Store context middleware
-- `app/Models`: Eloquent models for core domain
-- `app/Policies`: Store authorization policy
-- `app/Traits`: Auditing and store-context helpers
-- `database/migrations`: Schema + data migrations
-- `database/factories`: Model factories for tests/seeding
-- `database/seeders`: Seeders (only Test User wired in DatabaseSeeder)
-- `routes/api.php`: API routes (Sanctum-protected)
-- `routes/web.php`: Default welcome page only
-- `tests/Feature`: API and security tests
+VENDORA is a **multi-tenant, multi-store e-commerce and POS system** composed of three services:
 
-## Core domain model (entities + relationships)
+```
+Mobile App (React Native/Expo)
+    ↕ REST (Axios + Sanctum Bearer Token)
+Laravel API (PHP 8.4 / Laravel 12 / MySQL)
+    ↓ HMAC-signed webhooks
+WebSocket Server (Node.js / Express / Socket.io)
+    ↓ broadcast
+Mobile App (real-time updates via Socket.io)
+```
 
-### User
-- Fields: name, business_name, email, password, subscription_plan, user_type
-- Relationships:
-  - `products()`, `inventoryAdjustments()`, `customers()`, `orders()`
-  - `ownedStores()` (stores created/owned by user)
-  - `assignedStores()` (many-to-many via `store_user` pivot)
-  - `allAccessibleStores()` merges owned + assigned
+### Repository Locations
 
-### Store
-- Fields: user_id (owner), name, code, address, phone, email, is_active, settings (json)
-- Relationships:
-  - `owner()` -> User
-  - `staff()` -> many-to-many users via `store_user` (role, permissions, assigned_at)
-  - `products()` -> many-to-many products via `store_products` (stock, price overrides, availability)
-  - `storeProducts()` -> StoreProduct records
-  - `orders()`, `customers()`, `payments()`, `inventoryAdjustments()`
+| Service | Path | Stack |
+|---------|------|-------|
+| Backend REST API | `vendora-backend-rest-api` | PHP 8.4, Laravel 12, MySQL, Sanctum 4, Pest 4 |
+| Frontend Mobile | `vendora-frontend-mobile` | Expo 54, React Native 0.81, NativeWind, Axios, Socket.io-client |
+| WebSocket Server | `vendora-websocket-server` | Node.js, Express, Socket.io 4, jsonwebtoken |
 
-### Product
-- Fields: user_id, category_id, name, sku, price, currency, stock, min_stock, max_stock
-- Relationships:
-  - `user()`, `category()`
-  - `inventoryAdjustments()`, `orderItems()`
-  - `storeProducts()` and `stores()` (per-store inventory via `store_products`)
+---
 
-### StoreProduct (per-store inventory)
-- Fields: store_id, product_id, stock, min_stock, max_stock, price_override, is_available
-- Helpers:
-  - `effectivePrice` attribute (override or base product price)
-  - `isLowStock()` / `isOutOfStock()`
+## 1. Backend (Laravel REST API)
 
-### Category
-- Fields: name (unique)
-- Relationship: `products()`
+### 1.1 Directory Structure
 
-### Customer
-- Fields: user_id, store_id, name, email, phone, status, orders_count, total_spent
-- Relationships: `user()`, `store()`, `orders()`
+```
+app/
+├── Console/
+├── Enums/
+│   ├── UserType.php          # Admin, Vendor, Manager, Cashier, Buyer
+│   ├── UserStatus.php        # Active, Inactive, Suspended
+│   └── StoreRole.php         # Owner, Manager, Cashier, Staff
+├── Http/
+│   ├── Controllers/Api/
+│   │   ├── AuthController.php
+│   │   ├── ProductController.php
+│   │   ├── CategoryController.php
+│   │   ├── CustomerController.php
+│   │   ├── OrderController.php
+│   │   ├── PaymentController.php
+│   │   ├── InventoryController.php
+│   │   ├── DashboardController.php
+│   │   ├── StoreController.php
+│   │   ├── StoreProductController.php
+│   │   ├── StoreStaffController.php
+│   │   ├── UserController.php
+│   │   └── Admin/
+│   │       ├── UserController.php
+│   │       └── VendorController.php
+│   ├── Middleware/
+│   │   └── SetStoreContext.php
+│   ├── Requests/              # 25+ Form Request classes
+│   └── Resources/             # 20+ API Resource classes
+├── Models/
+│   ├── User.php
+│   ├── Product.php
+│   ├── Store.php
+│   ├── Order.php
+│   ├── OrderItem.php
+│   ├── Customer.php
+│   ├── Payment.php
+│   ├── Category.php
+│   ├── StoreProduct.php
+│   ├── InventoryAdjustment.php
+│   ├── AuditLog.php
+│   ├── VendorProfile.php
+│   ├── ProductBulkPrice.php
+│   └── Concerns/
+│       └── SerializesDatesInAppTimezone.php
+├── Services/
+│   └── WebhookService.php
+└── Traits/
+    ├── Auditable.php
+    └── HasStoreContext.php
+```
 
-### Order
-- Fields: user_id, store_id, customer_id, processed_by, order_number, ordered_at, status, items_count, total, currency
-- Relationships: `user()`, `store()`, `customer()`, `items()`, `payments()`, `processedBy()`
+### 1.2 Models & Relationships
 
-### OrderItem
-- Fields: order_id, product_id, quantity, unit_price, line_total
-- Relationships: `order()`, `product()`
+```
+User (Authenticatable, HasApiTokens)
+├── HasOne:  vendorProfile → VendorProfile
+├── HasMany: products → Product
+├── HasMany: orders → Order
+├── HasMany: customers → Customer
+├── HasMany: inventoryAdjustments → InventoryAdjustment
+├── HasMany: ownedStores → Store
+└── BelongsToMany: assignedStores → Store (pivot: store_user with role, permissions, assigned_at)
 
-### Payment
-- Fields: user_id, store_id, order_id, payment_number, paid_at, amount, currency, method, status
-- Relationships: `user()`, `order()`, `store()`
+Product (Auditable, SoftDeletes)
+├── BelongsTo: user, category
+├── HasMany: inventoryAdjustments, orderItems, storeProducts, bulkPrices
+└── BelongsToMany: stores (pivot: store_products with stock, min_stock, max_stock, price_override, is_available)
 
-### InventoryAdjustment
-- Fields: user_id, store_id, product_id, type, quantity, stock_before, stock_after, note
-- Relationships: `user()`, `store()`, `product()`
+Store (Auditable)
+├── BelongsTo: user (owner)
+├── HasMany: orders, customers, payments, inventoryAdjustments, storeProducts
+├── BelongsToMany: staff → User (pivot: store_user)
+└── BelongsToMany: products → Product (pivot: store_products)
 
-### AuditLog
-- Fields: user_id, store_id, action, model_type, model_id, old_values, new_values, ip_address, user_agent
-- Behavior:
-  - `AuditLog::log(...)` helper writes audit entries
-  - `Auditable` trait logs create/update/delete on models using it
+Order (Auditable)
+├── BelongsTo: user, customer, store, processedBy (User)
+└── HasMany: items → OrderItem, payments → Payment
 
-## API surface (routes/api.php)
+OrderItem
+└── BelongsTo: order, product
 
-All API routes are protected by `auth:sanctum` except login/register.
+Customer
+├── BelongsTo: user, store
+└── HasMany: orders
 
-### Auth
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `POST /api/auth/logout` (requires auth)
-- Rate limit on auth endpoints: `throttle:5,1`
+Payment (Auditable)
+└── BelongsTo: user, order, store
 
-### User
-- `GET /api/user` (current authenticated user)
+Category
+└── HasMany: products
 
-### Dashboard widgets
-- `GET /api/dashboard/kpis`
-- `GET /api/dashboard/sales-trend`
-- `GET /api/dashboard/orders-by-channel`
-- `GET /api/dashboard/payment-methods`
-- `GET /api/dashboard/top-products`
-- `GET /api/dashboard/inventory-health`
-- `GET /api/dashboard/low-stock-alerts`
-- `GET /api/dashboard/pending-orders`
-- `GET /api/dashboard/recent-activity`
+StoreProduct
+└── BelongsTo: store, product
+    Methods: effectivePrice(), isLowStock(), isOutOfStock()
 
-### Categories
-- `GET /api/categories`
+InventoryAdjustment
+└── BelongsTo: user, product, store
 
-### Products
-- `GET /api/products`
-- `POST /api/products`
-- `GET /api/products/{product}`
-- `PUT/PATCH /api/products/{product}`
-- `DELETE /api/products/{product}`
+AuditLog
+├── BelongsTo: user
+└── MorphTo: auditable
+    Static: log(action, model, oldValues, newValues)
 
-### Inventory
-- `GET /api/inventory`
-- `GET /api/inventory/summary`
-- `POST /api/inventory/adjustments`
+VendorProfile
+└── BelongsTo: user
 
-### Customers
-- `GET /api/customers`
-- `GET /api/customers/summary`
-- `POST /api/customers`
-- `GET /api/customers/{customer}`
-- `PUT/PATCH /api/customers/{customer}`
-- `DELETE /api/customers/{customer}`
+ProductBulkPrice
+└── BelongsTo: product
+```
 
-### Orders
-- `GET /api/orders`
-- `GET /api/orders/summary`
-- `POST /api/orders`
-- `GET /api/orders/{order}`
-- `PUT/PATCH /api/orders/{order}`
-- `DELETE /api/orders/{order}`
+### 1.3 Enums
 
-### Payments
-- `GET /api/payments`
-- `GET /api/payments/summary`
-- `POST /api/payments`
-- `GET /api/payments/{payment}`
-- `PUT/PATCH /api/payments/{payment}`
-- `DELETE /api/payments/{payment}`
+**UserType** — `Admin(4)`, `Manager(3)`, `Vendor(2)`, `Cashier(2)`, `Buyer(0)` (hierarchy levels)
+- Methods: `label()`, `options()`, `hierarchyLevel()`, `canManage(UserType)`
 
-### Stores & staff
-- `GET /api/stores`
-- `POST /api/stores`
-- `GET /api/stores/{store}`
-- `PUT/PATCH /api/stores/{store}`
-- `DELETE /api/stores/{store}`
-- `GET /api/stores/{store}/staff`
-- `POST /api/stores/{store}/staff`
-- `PATCH /api/stores/{store}/staff/{user}`
-- `DELETE /api/stores/{store}/staff/{user}`
-- `GET /api/store-roles`
+**UserStatus** — `Active`, `Inactive`, `Suspended`
 
-### Store products (per-store inventory)
-- `GET /api/stores/{store}/products`
-- `POST /api/stores/{store}/products`
-- `GET /api/stores/{store}/products/{product}`
-- `PATCH /api/stores/{store}/products/{product}`
-- `DELETE /api/stores/{store}/products/{product}`
+**StoreRole** — `Owner(*)`, `Manager`, `Cashier`, `Staff`
+- Each role has a defined permissions array. Owner has `['*']`.
+- Methods: `permissions()`, `hasPermission(string)`, `assignable()`
 
-## Authentication & authorization
-- Uses Sanctum personal access tokens; `auth:sanctum` middleware guards API routes.
-- Login/register include `user_type` and `subscription_plan` validation.
-- Store access authorization is enforced in `StorePolicy`.
-- Store roles and permissions are centralized in `App\Enums\StoreRole`.
+### 1.4 API Routes
 
-## Store context
-- `SetStoreContext` middleware supports `X-Store-Id` header or `store_id` input.
-- `HasStoreContext` trait adds helpers to resolve or require a current store.
-- Note: `store.context` middleware is registered as an alias in `bootstrap/app.php` but is not currently applied to the API route groups, so store context is only set if the middleware is explicitly added to routes.
+**Auth (throttled 5/min)**
+```
+POST   /api/auth/register         Public
+POST   /api/auth/login            Public
+POST   /api/auth/logout           Auth
+GET    /api/auth/me               Auth
+```
 
-## Data model (tables, key fields, and indices)
-- `users` + `password_reset_tokens` + `sessions`
-- `categories` (unique name)
-- `products` (unique sku per user, price/stock + thresholds)
-- `inventory_adjustments` (product history)
-- `customers` (unique email/phone per user, status)
-- `orders` (unique order_number per user, status, totals, ordered_at)
-- `order_items` (order/product line items)
-- `payments` (unique payment_number per user, method/status)
-- `audit_logs` (model change + auth event trail)
-- `stores` (unique code per user)
-- `store_user` (store staff + roles + permissions)
-- `store_products` (per-store stock + overrides)
+**Products**
+```
+GET    /api/products                         Public (filters: search, category_id, store_id, user_id, min_price, max_price, in_stock, stock_lte, stock_gte, has_barcode, is_active, category, sort, direction, page, per_page)
+GET    /api/products/{product}               Public
+GET    /api/products/sku/{sku}               Public
+GET    /api/products/barcode/{code}          Public
+POST   /api/products                         Auth (vendor only, supports image upload + bulk pricing)
+PATCH  /api/products/{product}               Auth (vendor only)
+DELETE /api/products/{product}               Auth (vendor only, soft delete)
+PATCH  /api/products/{product}/stock         Auth
+POST   /api/products/bulk-stock-decrement    Auth (transactional)
+```
 
-A data migration (`2026_01_12_063717_migrate_existing_data_to_stores`) creates a default `MAIN` store per existing user and migrates product stock into `store_products`, then backfills `store_id` on orders/customers/inventory adjustments.
+**Categories**
+```
+GET    /api/categories              Public
+GET    /api/categories/{category}   Public
+POST   /api/categories              Auth
+PATCH  /api/categories/{category}   Auth
+DELETE /api/categories/{category}   Auth
+```
 
-## API resources and validation
-- Uses Form Requests for input validation in `app/Http/Requests`.
-- Uses API Resources in `app/Http/Resources` for consistent JSON responses.
+**Orders**
+```
+GET    /api/orders/summary          Auth
+GET    /api/orders                  Auth
+POST   /api/orders                  Auth (creates items, decrements stock)
+GET    /api/orders/{order}          Auth
+PATCH  /api/orders/{order}          Auth
+DELETE /api/orders/{order}          Auth
+```
 
-## OpenAPI / Swagger docs
-- Controllers use OpenAPI attributes (via `OpenApi\Attributes`).
-- L5 Swagger config in `config/l5-swagger.php`.
-- Default docs routes:
-  - UI: `/api/documentation`
-  - JSON: `/api/docs`
-- Docs output stored under `storage/api-docs`.
+**Customers**
+```
+GET    /api/customers/summary       Auth
+GET    /api/customers               Auth
+POST   /api/customers               Auth
+GET    /api/customers/{customer}    Auth
+PATCH  /api/customers/{customer}    Auth
+DELETE /api/customers/{customer}    Auth
+```
 
-## Frontend assets
-- Minimal web layer: `routes/web.php` serves the default Laravel welcome page.
-- Tailwind CSS 4 is configured via `resources/css/app.css` and Vite.
-- No application-specific frontend UI is present in this repo.
+**Payments**
+```
+GET    /api/payments/summary        Auth
+GET    /api/payments                Auth
+POST   /api/payments                Auth
+GET    /api/payments/{payment}      Auth
+PATCH  /api/payments/{payment}      Auth
+DELETE /api/payments/{payment}      Auth
+```
 
-## Testing status
-- Pest tests exist for dashboard widgets, payments, auth, authorization (IDOR), and validation.
-- Default example tests remain in `tests/Unit/ExampleTest.php` and `tests/Feature/ExampleTest.php`.
+**Inventory**
+```
+GET    /api/inventory               Auth
+GET    /api/inventory/summary       Auth
+POST   /api/inventory/adjustments   Auth
+```
 
-## Seeders and factories
-- Factories exist for core models: User, Store, Product, StoreProduct, Category, Customer, Order, OrderItem, Payment, InventoryAdjustment.
-- Seeders exist for several models, but `DatabaseSeeder` currently only creates a single Test User and does not call other seeders.
+**Dashboard**
+```
+GET    /api/dashboard/kpis              Auth
+GET    /api/dashboard/sales-trend       Auth
+GET    /api/dashboard/orders-by-channel Auth
+GET    /api/dashboard/payment-methods   Auth
+GET    /api/dashboard/top-products      Auth
+GET    /api/dashboard/inventory-health  Auth
+GET    /api/dashboard/low-stock-alerts  Auth
+GET    /api/dashboard/pending-orders    Auth
+GET    /api/dashboard/recent-activity   Auth
+```
 
-## Scripts (composer)
-- `composer run setup`: install deps, copy env, generate key, migrate, install/build frontend
-- `composer run dev`: concurrently runs `php artisan serve`, queue listener, and Vite
-- `composer run test`: config clear + test
+**Stores**
+```
+GET    /api/stores                          Auth
+POST   /api/stores                          Auth
+GET    /api/stores/{store}                  Auth
+PATCH  /api/stores/{store}                  Auth
+DELETE /api/stores/{store}                  Auth
+GET    /api/stores/{store}/staff            Auth
+POST   /api/stores/{store}/staff            Auth
+PATCH  /api/stores/{store}/staff/{user}     Auth
+DELETE /api/stores/{store}/staff/{user}     Auth
+GET    /api/store-roles                     Auth
+GET    /api/stores/{store}/products                 Auth
+POST   /api/stores/{store}/products                 Auth
+GET    /api/stores/{store}/products/{product}        Auth
+PATCH  /api/stores/{store}/products/{product}        Auth
+DELETE /api/stores/{store}/products/{product}        Auth
+```
 
-## Notable gaps / current status notes
-- No custom web UI beyond the welcome page.
-- No custom console commands besides `inspire`.
-- No Jobs, Events, or Listeners defined in `app/`.
-- Store context middleware is defined but not attached to the API route group by default.
+**Admin**
+```
+GET    /api/admin/users                     Admin
+POST   /api/admin/users                     Admin
+GET    /api/admin/users/{user}              Admin
+PUT    /api/admin/users/{user}              Admin
+DELETE /api/admin/users/{user}              Admin
+PATCH  /api/admin/users/{user}/status       Admin
+POST   /api/admin/vendors                   Admin
+```
 
-## Update checklist (keep this file current)
-- Add/remove routes: update the API surface section.
-- Add/update models or relationships: update the Core domain model section.
-- Add/modify migrations: update Data model notes and any data migration notes.
-- Add/modify auth/authorization: update Authentication & authorization section.
-- Add/modify middleware (especially store context): update Store context section.
-- Add/modify API resources or Form Requests: update API resources and validation section.
-- Add/modify tests: update Testing status section.
-- Add/remove packages or tooling: update Tech stack and scripts.
+**User**
+```
+GET    /api/user                            Auth
+```
+
+### 1.5 Authentication & Authorization
+
+- **Sanctum token-based auth.** Token issued on login/register, sent as `Authorization: Bearer {token}`.
+- **Store context:** `SetStoreContext` middleware reads `X-Store-Id` header or `store_id` query param. Validates ownership or staff membership.
+- **HasStoreContext trait:** `currentStore()`, `requireStore()`, `userStores()`, `resolveStore()`.
+- **Role checks in controllers:** `$user->isVendor()`, `$user->isAdmin()`, etc.
+- **Audit logging:** `Auditable` trait auto-logs create/update/delete. `AuditLog::log()` for manual entries (auth events).
+
+### 1.6 Key Services & Patterns
+
+**WebhookService** — Sends HMAC-SHA256 signed HTTP POST to WebSocket server. Config: `services.websocket.url`, `services.websocket.secret`. Currently fires `user:login` and `user:logout`.
+
+**Money** — All prices/amounts stored as integers (cents/centavos). Products: `price`, `cost`. Orders: `total`. Payments: `amount`.
+
+**Dual-mode operation:**
+- E-commerce: Public browsing (`is_ecommerce=true`), global stock
+- POS: Store-scoped via `store_id`, per-store stock via `StoreProduct`
+
+**Soft deletes** on Product model. **Auto-slug** on Category. **Auto order numbering** (ORD-001, ORD-002...).
+
+### 1.7 Database Tables
+
+Core: `users`, `products`, `categories`, `stores`, `orders`, `order_items`, `customers`, `payments`, `inventory_adjustments`, `audit_logs`
+
+Multi-store pivots: `store_user` (role, permissions, assigned_at), `store_products` (stock, min_stock, max_stock, price_override, is_available)
+
+Supporting: `vendor_profiles`, `product_bulk_prices`, `personal_access_tokens`, `jobs`, `failed_jobs`, `cache`, `cache_locks`
+
+---
+
+## 2. Frontend (React Native / Expo)
+
+### 2.1 Directory Structure
+
+```
+src/
+├── api/
+│   ├── client.js              # Axios instance with Sanctum token interceptor
+│   ├── auth.js                # Auth API calls
+│   └── admin.js               # Admin API calls
+├── components/
+│   ├── admin/                 # UserManagement, VendorApprovals, ActivityLogs, etc.
+│   ├── reviews/               # RatingSummary, ReviewForm, ReviewList, ReviewModal
+│   ├── ActionSheet.js, AddProductModal.js, BannerCarousel.js,
+│   │   BecomeVendorModal.js, CartPanel.js, CartSheet.js,
+│   │   CheckoutModal.js, FilterChip.js, FloatingNav.js,
+│   │   LoginModal.js, OrderDetailModal.js, PaymentMethodCard.js,
+│   │   PrintableReceipt.js, ProductCard.js, ProductListCard.js,
+│   │   ProductQuickViewModal.js, ProfileModal.js, ReceiptModal.js,
+│   │   SaveCartModal.js, SavedCartsModal.js, SortFilterModal.js,
+│   │   StockUpdateModal.js, StoreCartSheet.js, StoreProductCard.js,
+│   │   Toast.js, VendoraLoading.js, VendorProfileModal.js
+│   └── (empty: cart/, comparison/, variants/)
+├── config/
+│   └── env.js                 # API_URL, WEBSOCKET_URL from EXPO_PUBLIC_* env vars
+├── context/
+│   ├── AuthContext.js          # Auth state, login/logout/register, role checks
+│   ├── ProductContext.js       # Product CRUD + silent updates for real-time sync
+│   ├── OrderContext.js         # Order management
+│   ├── CustomerContext.js      # Customer management
+│   ├── CartContext.js          # Cart state
+│   ├── SocketContext.js        # WebSocket connection + real-time event handling
+│   ├── AdminContext.js         # Admin operations
+│   └── ReviewContext.js        # Review management
+├── data/
+│   ├── defaultSettings.js
+│   └── products.js
+├── navigation/
+│   └── RootNavigator.js       # Custom screen-based nav with FloatingNav + slide animations
+├── screens/
+│   ├── LoginScreen.js
+│   ├── POSScreen.js
+│   ├── DashboardScreen.js
+│   ├── SalesScreen.js
+│   ├── InventoryScreen.js
+│   ├── ProductsScreen.js
+│   ├── OrdersScreen.js
+│   ├── ReportsScreen.js
+│   ├── SettingsScreen.js
+│   ├── StoreScreen.js
+│   └── AdminScreen.js
+├── services/
+│   ├── api.js
+│   ├── authService.js
+│   ├── categoryService.js
+│   ├── inventoryService.js
+│   ├── productService.js
+│   ├── socketService.js       # Socket.io client wrapper
+│   └── index.js
+└── utils/
+    ├── checkoutHelpers.js
+    ├── permissions.js          # ROLES constant, hasPermission(role, permission)
+    ├── receiptHelpers.js
+    └── timezone.js
+```
+
+### 2.2 Navigation
+
+Custom navigator in `RootNavigator.js` — no React Navigation stack/drawer. Uses `FloatingNav` component with animated slide transitions.
+
+**Screen access by role:**
+| Role | Screens | Default |
+|------|---------|---------|
+| Admin | Admin, POS, Dashboard, Sales, Inventory, Products, Orders, Reports, Settings, Store | Admin |
+| Vendor | POS, Dashboard, Sales, Inventory, Products, Settings | POS |
+| Manager | Same as Admin | Admin |
+| Cashier | POS, Sales, Orders, Settings | POS |
+| Buyer/Guest | Store | Store |
+
+Current screen persisted in AsyncStorage (`@vendora_current_screen`).
+
+### 2.3 State Management
+
+React Context pattern. Provider hierarchy:
+```
+AuthProvider → ProductProvider → OrderProvider → CustomerProvider → CartProvider → SocketProvider → AdminProvider → ReviewProvider
+```
+
+**AuthContext** — `currentUser`, `isAuthenticated`, `isAdmin`, `isVendor`, `login()`, `logout()`, `register()`, `hasRole()`, `checkPermission()`. Validates stored token on init via `/api/auth/me`.
+
+**SocketContext** — Connects to WebSocket server (authenticated or guest). Listens for real-time events and updates local state silently (no loading spinners). Handles app foreground/background reconnection.
+
+### 2.4 API Layer
+
+- `src/api/client.js` — Axios instance, baseURL from `env.js`, auto-injects Sanctum token from AsyncStorage.
+- Service files per domain call the Axios client.
+- Token stored at `@vendora_auth_token` in AsyncStorage.
+
+### 2.5 Key Dependencies
+
+```
+expo: ~54.0.31
+react-native: 0.81.5
+axios: ^1.7.9
+socket.io-client: ^4.8.3
+nativewind: ^4.2.1 (Tailwind for RN)
+@react-navigation/native: ^7.1.27
+@react-navigation/bottom-tabs: ^7.9.1
+expo-camera: ~17.0.10
+expo-image-picker: ~17.0.10
+expo-print: ~15.0.8
+@react-native-async-storage/async-storage: 2.2.0
+```
+
+---
+
+## 3. WebSocket Server (Node.js)
+
+### 3.1 Directory Structure
+
+```
+src/
+├── index.js                   # Express + HTTP server + Socket.io init
+├── config.js                  # PORT, LARAVEL_API_URL, WEBHOOK_SECRET, CORS_ORIGINS
+├── socket/
+│   ├── index.js               # Socket.io server initialization
+│   ├── auth.js                # Sanctum token validation + connection handling
+│   └── handlers.js            # Event broadcasting (broadcastEvent, sendToUser, sendToRole)
+├── webhook/
+│   ├── routes.js              # POST /webhook/events, GET /health, /debug, /logs, /logs/ui
+│   ├── handlers.js            # handleWebhookEvent — validates + broadcasts to Socket.io
+│   └── verify.js              # HMAC-SHA256 signature verification middleware
+└── utils/
+    ├── logger.js
+    └── log-store.js
+```
+
+### 3.2 Authentication
+
+Socket.io middleware validates Sanctum tokens by calling `GET {LARAVEL_API_URL}/auth/me` with the bearer token. Supports **guest connections** (`auth: { guest: true }`) for public events like product updates.
+
+### 3.3 Rooms
+
+| Room | Purpose |
+|------|---------|
+| `broadcast` | All connected clients (authenticated + guests) |
+| `user:{id}` | Per-user targeted messages |
+| `role:{role}` | Per-role broadcasts |
+| `logs-ui` | Log viewer subscribers |
+
+### 3.4 Sync Events
+
+```
+user:login, user:logout
+product:created, product:updated, product:deleted
+stock:updated
+order:created, order:updated
+category:created, category:updated, category:deleted
+```
+
+### 3.5 Webhook Endpoints
+
+```
+POST /webhook/events    — Main endpoint (HMAC-verified). Laravel sends events here.
+POST /webhook/batch     — Batch multiple events (HMAC-verified).
+GET  /webhook/health    — Connection stats (no auth).
+GET  /webhook/debug     — Detailed socket info (no auth).
+GET  /webhook/logs      — Recent logs as JSON.
+GET  /webhook/logs/ui   — Browser-based log viewer.
+```
+
+### 3.6 Webhook Verification
+
+Laravel's `WebhookService` signs payloads with `hash_hmac('sha256', json(payload), secret)` and sends as `X-Webhook-Signature` header. The WebSocket server verifies using `crypto.timingSafeEqual`.
+
+### 3.7 Config (.env)
+
+```
+PORT=3001
+LARAVEL_API_URL=http://localhost:8000/api
+WEBHOOK_SECRET=<shared secret with Laravel>
+CORS_ORIGINS=*
+TZ=Asia/Manila
+```
+
+---
+
+## 4. Key Architectural Patterns
+
+### Multi-Store
+- Users own stores (`ownedStores`) or are assigned as staff (`assignedStores`).
+- Products exist globally but have per-store inventory via `StoreProduct` (stock, price_override, is_available).
+- Orders, customers, payments are store-scoped.
+- Store context resolved via `X-Store-Id` header or `store_id` query param.
+
+### Dual-Mode (E-commerce + POS)
+- **E-commerce:** Public browsing, `is_ecommerce=true` products, global stock.
+- **POS:** Store-specific, requires store context, per-store inventory.
+
+### Real-Time Sync Flow
+1. Mobile app calls Laravel API (e.g., create product).
+2. Laravel's `WebhookService` sends signed event to WebSocket server.
+3. WebSocket server broadcasts to all clients in `broadcast` room.
+4. Mobile app's `SocketContext` receives event, updates local state silently.
+
+### Money
+All monetary values stored as integers (cents/centavos). Currency field defaults to `PHP`.
+
+### Audit Trail
+`Auditable` trait on Product, Store, Order, Payment auto-logs changes to `audit_logs` table. Manual logging for auth events via `AuditLog::log()`.
+
+---
+
+## 5. Testing
+
+- **Framework:** Pest 4
+- **Factories:** User, Product, Order, Category, Customer, Store, StoreProduct, InventoryAdjustment, OrderItem, Payment, ProductBulkPrice
+- **Run:** `php artisan test --compact` or `php artisan test --compact --filter=testName`
+- **Format:** `vendor/bin/pint --dirty`

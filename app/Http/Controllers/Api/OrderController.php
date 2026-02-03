@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateOrderRequest;
 use App\Http\Resources\OrderResource;
 use App\Http\Resources\OrderSummaryResource;
 use App\Models\Customer;
+use App\Models\LedgerEntry;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -332,6 +333,33 @@ class OrderController extends Controller
                 $customer->update([
                     'orders_count' => $customer->orders_count + 1,
                     'total_spent' => $customer->total_spent + $lineTotal,
+                ]);
+            }
+
+            // Create ledger entries for the sale
+            LedgerEntry::query()->create([
+                'user_id' => $user->id,
+                'store_id' => $store?->id,
+                'order_id' => $order->id,
+                'type' => 'sale',
+                'category' => 'financial',
+                'amount' => $lineTotal,
+                'reference' => $orderNumber,
+                'description' => 'Sale '.$orderNumber,
+            ]);
+
+            // Create stock_out entries for each item
+            foreach ($items as $item) {
+                LedgerEntry::query()->create([
+                    'user_id' => $user->id,
+                    'store_id' => $store?->id,
+                    'product_id' => $item['product_id'],
+                    'order_id' => $order->id,
+                    'type' => 'stock_out',
+                    'category' => 'inventory',
+                    'quantity' => -(int) $item['quantity'],
+                    'reference' => $orderNumber,
+                    'description' => 'Sold via '.$orderNumber,
                 ]);
             }
 

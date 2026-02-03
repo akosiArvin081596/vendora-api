@@ -348,3 +348,293 @@ $pages->assertNoJavascriptErrors()->assertNoConsoleLogs();
 | decoration-slice | box-decoration-slice |
 | decoration-clone | box-decoration-clone |
 </laravel-boost-guidelines>
+
+---
+
+# VENDORA Project Overview
+
+## Project Description
+VENDORA is a multi-vendor e-commerce platform with POS (Point of Sale) capabilities. The system supports multiple stores per vendor with staff management, inventory tracking, and comprehensive order/payment processing.
+
+## Full Stack Architecture
+| Component | Technology | Location |
+|-----------|------------|----------|
+| Frontend | React Native (Mobile) | `c:\Users\DSWDSRV-CARAGA\Desktop\VENDORA\development\vendora-frontend-mobile` |
+| Backend | Laravel 12 REST API | `c:\Users\DSWDSRV-CARAGA\Desktop\VENDORA\development\vendora-backend-rest-api` |
+| Real-time | Node.js WebSocket Server | `c:\Users\DSWDSRV-CARAGA\Desktop\VENDORA\development\vendora-websocket-server` |
+
+---
+
+## Backend Directory Structure
+
+```
+app/
+├── Enums/
+│   ├── StoreRole.php        # Owner, Manager, Cashier, Staff roles with permissions
+│   ├── UserStatus.php       # Active, Inactive, Suspended
+│   └── UserType.php         # Admin, Vendor, Manager, Cashier, Buyer (with hierarchy)
+├── Http/
+│   ├── Controllers/Api/
+│   │   ├── Admin/
+│   │   │   ├── UserController.php     # Admin user CRUD + status
+│   │   │   └── VendorController.php   # Vendor creation
+│   │   ├── AuthController.php         # Login/Register/Logout
+│   │   ├── CategoryController.php     # Product categories CRUD
+│   │   ├── CustomerController.php     # Customer management + summary
+│   │   ├── DashboardController.php    # KPIs, trends, analytics
+│   │   ├── InventoryController.php    # Stock tracking + adjustments
+│   │   ├── LedgerController.php       # Financial ledger entries
+│   │   ├── OrderController.php        # Order CRUD + summary
+│   │   ├── PaymentController.php      # Payment processing + summary
+│   │   ├── ProductController.php      # Products CRUD + stock ops + barcode/SKU lookup
+│   │   ├── StoreController.php        # Store CRUD
+│   │   ├── StoreProductController.php # Per-store inventory
+│   │   ├── StoreStaffController.php   # Staff assignment/management
+│   │   └── UserController.php         # Current user info
+│   ├── Middleware/
+│   │   └── SetStoreContext.php        # Store context middleware
+│   ├── Requests/                      # Form Request validation classes (20+)
+│   └── Resources/                     # API Resource transformers (25+)
+├── Models/
+│   ├── Concerns/
+│   │   └── SerializesDatesInAppTimezone.php
+│   ├── AuditLog.php
+│   ├── Category.php
+│   ├── Customer.php
+│   ├── InventoryAdjustment.php
+│   ├── LedgerEntry.php
+│   ├── Order.php
+│   ├── OrderItem.php
+│   ├── Payment.php
+│   ├── Product.php
+│   ├── ProductBulkPrice.php
+│   ├── Store.php
+│   ├── StoreProduct.php
+│   ├── User.php
+│   └── VendorProfile.php
+├── Observers/
+│   ├── CategoryObserver.php
+│   ├── OrderObserver.php
+│   └── ProductObserver.php
+├── Policies/
+│   └── StorePolicy.php
+├── Services/
+│   └── WebhookService.php
+└── Traits/
+    ├── Auditable.php
+    └── HasStoreContext.php
+
+database/
+├── factories/           # 13 factories for all models
+├── migrations/          # 28 migrations
+└── seeders/
+
+tests/
+├── Feature/            # 20+ feature tests (Auth, CRUD, Security, etc.)
+└── Unit/
+```
+
+---
+
+## Database Schema (MySQL)
+
+### Core Tables
+| Table | Description | Key Columns |
+|-------|-------------|-------------|
+| `users` | All user types | id, name, email, password, user_type, status, phone, last_login_at |
+| `vendor_profiles` | Vendor business details | user_id, business_name, business_address, tax_id |
+| `stores` | Physical/virtual stores | id, user_id (owner), name, code, address, phone, email, is_active, settings (JSON) |
+| `store_user` | Staff assignments (pivot) | store_id, user_id, role, permissions (JSON), assigned_at |
+| `products` | Product catalog | id, user_id, category_id, name, sku, barcode, price, cost, stock, min_stock, max_stock, is_active, is_ecommerce |
+| `product_bulk_prices` | Tiered pricing | product_id, min_qty, price |
+| `store_products` | Per-store inventory | store_id, product_id, stock, min_stock, max_stock, price_override, is_available |
+| `categories` | Product categories | id, user_id, name, description, parent_id, image, is_active, sort_order |
+| `customers` | Store customers | id, user_id, store_id, name, email, phone, address, notes |
+| `orders` | Sales orders | id, user_id, store_id, customer_id, processed_by, order_number, ordered_at, status, items_count, total, currency |
+| `order_items` | Order line items | order_id, product_id, quantity, unit_price, total |
+| `payments` | Payment records | id, order_id, store_id, amount, payment_method, status, reference |
+| `inventory_adjustments` | Stock changes | id, product_id, store_id, user_id, quantity, type, reason |
+| `ledger_entries` | Financial ledger | id, user_id, store_id, type, amount, description, reference |
+| `audit_logs` | Activity logging | auditable_type, auditable_id, action, old_values, new_values |
+
+### System Tables
+- `cache`, `cache_locks` - Laravel cache
+- `sessions` - Session management
+- `jobs`, `job_batches`, `failed_jobs` - Queue system
+- `personal_access_tokens` - Sanctum API tokens
+
+---
+
+## Model Relationships
+
+### User
+- `hasOne`: VendorProfile
+- `hasMany`: Products, InventoryAdjustments, Customers, Orders, ownedStores
+- `belongsToMany`: assignedStores (via store_user pivot)
+
+### Store
+- `belongsTo`: owner (User)
+- `belongsToMany`: staff (Users), products (via store_products)
+- `hasMany`: storeProducts, orders, customers, payments, inventoryAdjustments
+
+### Product
+- `belongsTo`: User, Category
+- `hasMany`: inventoryAdjustments, orderItems, storeProducts, bulkPrices
+- `belongsToMany`: stores (via store_products)
+
+### Order
+- `belongsTo`: User, Customer, Store, processedBy (User)
+- `hasMany`: items (OrderItem), payments
+
+---
+
+## API Routes Summary
+
+### Authentication (`/api/auth`)
+- `POST /register` - Register new user (rate limited: 5/min)
+- `POST /login` - Login (rate limited: 5/min)
+- `POST /logout` - Logout (auth required)
+- `GET /me` - Current user info (auth required)
+
+### Public Routes
+- `GET /products` - List products (e-commerce browsing)
+- `GET /products/{product}` - Show product
+- `GET /products/sku/{sku}` - Find by SKU
+- `GET /products/barcode/{code}` - Find by barcode
+- `GET /categories` - List categories
+- `GET /categories/{category}` - Show category
+
+### POS Endpoint (auth required)
+- `GET /products/my` - List authenticated user's products only (for POS mode, secure)
+
+### Protected Routes (require `auth:sanctum`)
+
+#### Products
+- `POST /products` - Create product
+- `PUT|PATCH /products/{product}` - Update product
+- `DELETE /products/{product}` - Delete product
+- `PATCH /products/{product}/stock` - Update stock
+- `POST /products/bulk-stock-decrement` - Bulk stock decrement
+
+#### Categories
+- `POST /categories` - Create category
+- `PUT|PATCH /categories/{category}` - Update category
+- `DELETE /categories/{category}` - Delete category
+
+#### Dashboard Analytics
+- `GET /dashboard/kpis` - Key performance indicators
+- `GET /dashboard/sales-trend` - Sales over time
+- `GET /dashboard/orders-by-channel` - Channel breakdown
+- `GET /dashboard/payment-methods` - Payment method stats
+- `GET /dashboard/top-products` - Best sellers
+- `GET /dashboard/inventory-health` - Stock health
+- `GET /dashboard/low-stock-alerts` - Low stock warnings
+- `GET /dashboard/pending-orders` - Pending orders
+- `GET /dashboard/recent-activity` - Recent activity
+
+#### Resource Routes (CRUD + summary)
+- `/customers` - CustomerController (apiResource + summary)
+- `/orders` - OrderController (apiResource + summary)
+- `/payments` - PaymentController (apiResource + summary)
+- `/stores` - StoreController (apiResource)
+- `/inventory` - InventoryController (index, summary, adjustments.store)
+- `/ledger` - LedgerController (index, summary, store)
+
+#### Store Management
+- `GET|POST /stores/{store}/staff` - List/add staff
+- `PATCH|DELETE /stores/{store}/staff/{user}` - Update/remove staff
+- `GET /store-roles` - Available roles
+
+#### Store Products (per-store inventory)
+- `GET|POST /stores/{store}/products` - List/add products
+- `GET|PATCH|DELETE /stores/{store}/products/{product}` - Product operations
+
+#### Admin Routes (`/api/admin`)
+- `GET|POST /users` - List/create users
+- `GET|PUT|DELETE /users/{user}` - User CRUD
+- `PATCH /users/{user}/status` - Update user status
+- `POST /vendors` - Create vendor
+
+---
+
+## Key Enums Reference
+
+### UserType (hierarchy levels)
+| Type | Level | Description |
+|------|-------|-------------|
+| Admin | 4 | Full system access |
+| Manager | 3 | Can manage Cashiers and Buyers |
+| Vendor | 2 | Store owner |
+| Cashier | 2 | POS operations |
+| Buyer | 0 | Customer/shopper |
+
+### UserStatus
+- `Active` - Can login and use system
+- `Inactive` - Account disabled
+- `Suspended` - Temporarily blocked
+
+### StoreRole (with permissions)
+| Role | Permissions |
+|------|-------------|
+| Owner | `*` (all) |
+| Manager | products.*, orders.*, inventory.*, customers.*, payments.*, reports.view, staff.view |
+| Cashier | products.view, orders.view/create, customers.view/create, payments.view/create |
+| Staff | products.view, orders.view, inventory.view |
+
+---
+
+## Testing Structure
+
+### Feature Tests
+| Test File | Coverage |
+|-----------|----------|
+| `AdminSeederTest.php` | Admin seeding |
+| `Auth/*.php` | Authentication flows |
+| `CategoryCrudTest.php` | Category CRUD |
+| `CategorySeederTest.php` | Category seeding |
+| `CustomersApiTest.php` | Customer API |
+| `DashboardApiTest.php` | Dashboard endpoints |
+| `InventoryApiTest.php` | Inventory operations |
+| `LedgerTest.php` | Ledger entries |
+| `OrdersApiTest.php` | Order processing |
+| `PaymentsApiTest.php` | Payment handling |
+| `ProductsApiTest.php` | Product CRUD |
+| `ProductExtendedTest.php` | Extended product features |
+| `ProductImageUploadTest.php` | Image uploads |
+| `PublicProductsApiTest.php` | Public product access |
+| `SecurityAuthenticationTest.php` | Auth security |
+| `SecurityAuthorizationTest.php` | Authorization |
+| `SecurityInputValidationTest.php` | Input validation |
+| `StoresApiTest.php` | Store management |
+| `TimezoneSerializationTest.php` | Timezone handling |
+| `WebhookServiceTest.php` | Webhook service |
+
+---
+
+## Middleware Configuration
+
+Configured in `bootstrap/app.php`:
+- `store.context` → `App\Http\Middleware\SetStoreContext`
+
+---
+
+## Traits & Concerns
+
+### Auditable (`App\Traits\Auditable`)
+Provides automatic audit logging for model changes.
+
+### HasStoreContext (`App\Traits\HasStoreContext`)
+Provides store context awareness for multi-tenant operations.
+
+### SerializesDatesInAppTimezone (`App\Models\Concerns`)
+Ensures dates are serialized in the application's configured timezone.
+
+---
+
+## Factories Available
+
+All models have corresponding factories in `database/factories/`:
+- CategoryFactory, CustomerFactory, InventoryAdjustmentFactory
+- LedgerEntryFactory, OrderFactory, OrderItemFactory
+- PaymentFactory, ProductFactory, ProductBulkPriceFactory
+- StoreFactory, StoreProductFactory, UserFactory, VendorProfileFactory

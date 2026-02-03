@@ -32,7 +32,22 @@
       "Bash(powershell -Command \"$payload = ''{\"\"event\"\":\"\"product:created\"\",\"\"data\"\":{\"\"id\"\":999,\"\"name\"\":\"\"Test Product\"\"}}''; $secret = ''ARVIN''; $hmac = New-Object System.Security.Cryptography.HMACSHA256; $hmac.Key = [Text.Encoding]::UTF8.GetBytes\\($secret\\); $hash = $hmac.ComputeHash\\([Text.Encoding]::UTF8.GetBytes\\($payload\\)\\); $signature = [BitConverter]::ToString\\($hash\\).Replace\\(''-'',''''\\).ToLower\\(\\); Write-Host \"\"Signature: $signature\"\"; curl -s -X POST http://76.13.22.110:3001/webhook/events -H ''Content-Type: application/json'' -H \"\"X-Webhook-Signature: $signature\"\" -d $payload\")",
       "Bash(find:*)",
       "Bash(xargs:*)",
-      "Bash(php:*)"
+      "Bash(php:*)",
+      "Bash(ls \"C:\\\\Users\\\\DSWDSRV-CARAGA\\\\Desktop\\\\VENDORA\\\\development\\\\vendora-frontend-mobile\\\\src\\\\services\"\" 2>nul && ls \"C:UsersDSWDSRV-CARAGADesktopVENDORAdevelopmentvendora-frontend-mobilesrccomponents\"\")",
+      "Bash(npx expo install:*)",
+      "Bash(npm install:*)",
+      "Bash(npx patch-package react-native-safe-area-context)",
+      "Bash(npx patch-package)",
+      "Bash(gradlew.bat assembleRelease:*)",
+      "Bash(cmd /c \"cd /d C:\\\\vendora\\\\android && gradlew.bat assembleRelease\")",
+      "Bash(cmd /c \"cd /d C:\\\\vendora\\\\android && .\\\\gradlew.bat assembleRelease 2>&1\")",
+      "Bash(cmd /c \"cd /d C:\\\\vendora\\\\android & C:\\\\vendora\\\\android\\\\gradlew.bat assembleRelease 2>&1\")",
+      "Bash(powershell -Command \"Set-Location ''C:\\\\vendora\\\\android''; .\\\\gradlew.bat assembleRelease 2>&1\")",
+      "Bash(powershell -Command \"cd ''C:\\\\vendora''; npx patch-package react-native-bluetooth-escpos-printer 2>&1\")",
+      "Bash(powershell:*)",
+      "Bash(cmd /c \"mkdir C:\\\\vendora\\\\empty_dir & robocopy C:\\\\vendora\\\\empty_dir C:\\\\vendora\\\\node_modules\\\\react-native-bluetooth-escpos-printer\\\\android\\\\build /MIR >nul 2>&1 & rmdir /s /q C:\\\\vendora\\\\node_modules\\\\react-native-bluetooth-escpos-printer\\\\android\\\\build & rmdir C:\\\\vendora\\\\empty_dir\")",
+      "Bash(cmd /c \"mkdir C:\\\\vendora\\\\empty_dir 2>nul & robocopy C:\\\\vendora\\\\empty_dir C:\\\\vendora\\\\node_modules\\\\react-native-bluetooth-escpos-printer\\\\android\\\\build /MIR >nul 2>&1 & rmdir /s /q C:\\\\vendora\\\\node_modules\\\\react-native-bluetooth-escpos-printer\\\\android\\\\build 2>nul & rmdir C:\\\\vendora\\\\empty_dir 2>nul\")",
+      "Bash(python3:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
