@@ -31,14 +31,14 @@ Route::prefix('auth')->group(function () {
 });
 
 // Public product/category READ endpoints (for e-commerce browsing)
-Route::get('/products', [ProductController::class, 'index'])->name('products.index');
-Route::get('/products/sku/{sku}', [ProductController::class, 'showBySku'])->name('products.showBySku');
-Route::get('/products/barcode/{code}', [ProductController::class, 'showByBarcode'])->name('products.showByBarcode');
+// TODO: Re-enable when e-commerce frontend is ready
+// Route::get('/products', [ProductController::class, 'index'])->name('products.index');
+// Route::get('/products/sku/{sku}', [ProductController::class, 'showBySku'])->name('products.showBySku');
+// Route::get('/products/barcode/{code}', [ProductController::class, 'showByBarcode'])->name('products.showByBarcode');
+// Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
 
-// POS endpoint - returns only authenticated user's products (must be before {product} route)
+// POS endpoint - returns only authenticated user's products
 Route::get('/products/my', [ProductController::class, 'my'])->middleware('auth:sanctum')->name('products.my');
-
-Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
 Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
 Route::get('/categories/{category}', [CategoryController::class, 'show'])->name('categories.show');
 
