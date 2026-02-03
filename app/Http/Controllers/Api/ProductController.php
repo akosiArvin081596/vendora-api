@@ -21,69 +21,70 @@ use OpenApi\Attributes as OA;
 
 class ProductController extends Controller
 {
-    #[OA\Get(
-        path: '/api/products',
-        tags: ['Product'],
-        summary: 'List products with search and filters (public endpoint)',
-        description: 'Public endpoint for e-commerce browsing. Use store_id or user_id filter for POS mode.',
-        parameters: [
-            new OA\Parameter(name: 'search', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
-            new OA\Parameter(name: 'category_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
-            new OA\Parameter(name: 'store_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer'), description: 'Filter by store ID (for POS mode)'),
-            new OA\Parameter(name: 'user_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer'), description: 'Filter by vendor/owner ID'),
-            new OA\Parameter(name: 'min_price', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
-            new OA\Parameter(name: 'max_price', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
-            new OA\Parameter(name: 'in_stock', in: 'query', required: false, schema: new OA\Schema(type: 'boolean')),
-            new OA\Parameter(name: 'sort', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
-            new OA\Parameter(name: 'direction', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
-            new OA\Parameter(name: 'page', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
-            new OA\Parameter(name: 'per_page', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
-        ],
-        responses: [
-            new OA\Response(
-                response: 200,
-                description: 'Product list',
-                content: new OA\JsonContent(
-                    properties: [
-                        new OA\Property(
-                            property: 'data',
-                            type: 'array',
-                            items: new OA\Items(
-                                properties: [
-                                    new OA\Property(property: 'id', type: 'integer', example: 1),
-                                    new OA\Property(property: 'name', type: 'string', example: 'Premium Rice 5kg'),
-                                    new OA\Property(property: 'sku', type: 'string', example: 'GR-1001'),
-                                    new OA\Property(
-                                        property: 'category',
-                                        type: 'object',
-                                        properties: [
-                                            new OA\Property(property: 'id', type: 'integer', example: 3),
-                                            new OA\Property(property: 'name', type: 'string', example: 'Grocery'),
-                                        ]
-                                    ),
-                                    new OA\Property(property: 'price', type: 'integer', example: 1250),
-                                    new OA\Property(property: 'currency', type: 'string', example: 'PHP'),
-                                    new OA\Property(property: 'stock', type: 'integer', example: 18),
-                                    new OA\Property(property: 'is_low_stock', type: 'boolean', example: true),
-                                    new OA\Property(property: 'created_at', type: 'string', format: 'date-time', example: '2026-01-10T10:00:00Z'),
-                                    new OA\Property(property: 'updated_at', type: 'string', format: 'date-time', example: '2026-01-10T10:00:00Z'),
-                                ]
-                            )
-                        ),
-                        new OA\Property(
-                            property: 'meta',
-                            type: 'object',
-                            properties: [
-                                new OA\Property(property: 'current_page', type: 'integer', example: 1),
-                                new OA\Property(property: 'per_page', type: 'integer', example: 15),
-                                new OA\Property(property: 'total', type: 'integer', example: 120),
-                            ]
-                        ),
-                    ]
-                )
-            ),
-        ]
-    )]
+    // TODO: Re-enable when e-commerce frontend is ready
+    // #[OA\Get(
+    //     path: '/api/products',
+    //     tags: ['Product'],
+    //     summary: 'List products with search and filters (public endpoint)',
+    //     description: 'Public endpoint for e-commerce browsing. Use store_id or user_id filter for POS mode.',
+    //     parameters: [
+    //         new OA\Parameter(name: 'search', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
+    //         new OA\Parameter(name: 'category_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+    //         new OA\Parameter(name: 'store_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer'), description: 'Filter by store ID (for POS mode)'),
+    //         new OA\Parameter(name: 'user_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer'), description: 'Filter by vendor/owner ID'),
+    //         new OA\Parameter(name: 'min_price', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+    //         new OA\Parameter(name: 'max_price', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+    //         new OA\Parameter(name: 'in_stock', in: 'query', required: false, schema: new OA\Schema(type: 'boolean')),
+    //         new OA\Parameter(name: 'sort', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
+    //         new OA\Parameter(name: 'direction', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
+    //         new OA\Parameter(name: 'page', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+    //         new OA\Parameter(name: 'per_page', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+    //     ],
+    //     responses: [
+    //         new OA\Response(
+    //             response: 200,
+    //             description: 'Product list',
+    //             content: new OA\JsonContent(
+    //                 properties: [
+    //                     new OA\Property(
+    //                         property: 'data',
+    //                         type: 'array',
+    //                         items: new OA\Items(
+    //                             properties: [
+    //                                 new OA\Property(property: 'id', type: 'integer', example: 1),
+    //                                 new OA\Property(property: 'name', type: 'string', example: 'Premium Rice 5kg'),
+    //                                 new OA\Property(property: 'sku', type: 'string', example: 'GR-1001'),
+    //                                 new OA\Property(
+    //                                     property: 'category',
+    //                                     type: 'object',
+    //                                     properties: [
+    //                                         new OA\Property(property: 'id', type: 'integer', example: 3),
+    //                                         new OA\Property(property: 'name', type: 'string', example: 'Grocery'),
+    //                                     ]
+    //                                 ),
+    //                                 new OA\Property(property: 'price', type: 'integer', example: 1250),
+    //                                 new OA\Property(property: 'currency', type: 'string', example: 'PHP'),
+    //                                 new OA\Property(property: 'stock', type: 'integer', example: 18),
+    //                                 new OA\Property(property: 'is_low_stock', type: 'boolean', example: true),
+    //                                 new OA\Property(property: 'created_at', type: 'string', format: 'date-time', example: '2026-01-10T10:00:00Z'),
+    //                                 new OA\Property(property: 'updated_at', type: 'string', format: 'date-time', example: '2026-01-10T10:00:00Z'),
+    //                             ]
+    //                         )
+    //                     ),
+    //                     new OA\Property(
+    //                         property: 'meta',
+    //                         type: 'object',
+    //                         properties: [
+    //                             new OA\Property(property: 'current_page', type: 'integer', example: 1),
+    //                             new OA\Property(property: 'per_page', type: 'integer', example: 15),
+    //                             new OA\Property(property: 'total', type: 'integer', example: 120),
+    //                         ]
+    //                     ),
+    //                 ]
+    //             )
+    //         ),
+    //     ]
+    // )]
     public function index(Request $request): AnonymousResourceCollection
     {
         $query = Product::query()
@@ -305,43 +306,44 @@ class ProductController extends Controller
             ->setStatusCode(201);
     }
 
-    #[OA\Get(
-        path: '/api/products/{product}',
-        tags: ['Product'],
-        summary: 'Get a single product (public endpoint)',
-        description: 'Public endpoint to view product details. Only returns active e-commerce products.',
-        parameters: [
-            new OA\Parameter(name: 'product', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
-        ],
-        responses: [
-            new OA\Response(
-                response: 200,
-                description: 'Product details',
-                content: new OA\JsonContent(
-                    properties: [
-                        new OA\Property(property: 'id', type: 'integer', example: 1),
-                        new OA\Property(property: 'name', type: 'string', example: 'Premium Rice 5kg'),
-                        new OA\Property(property: 'sku', type: 'string', example: 'GR-1001'),
-                        new OA\Property(
-                            property: 'category',
-                            type: 'object',
-                            properties: [
-                                new OA\Property(property: 'id', type: 'integer', example: 3),
-                                new OA\Property(property: 'name', type: 'string', example: 'Grocery'),
-                            ]
-                        ),
-                        new OA\Property(property: 'price', type: 'integer', example: 1250),
-                        new OA\Property(property: 'currency', type: 'string', example: 'PHP'),
-                        new OA\Property(property: 'stock', type: 'integer', example: 18),
-                        new OA\Property(property: 'is_low_stock', type: 'boolean', example: true),
-                        new OA\Property(property: 'created_at', type: 'string', format: 'date-time', example: '2026-01-10T10:00:00Z'),
-                        new OA\Property(property: 'updated_at', type: 'string', format: 'date-time', example: '2026-01-10T10:00:00Z'),
-                    ]
-                )
-            ),
-            new OA\Response(response: 404, description: 'Not found'),
-        ]
-    )]
+    // TODO: Re-enable when e-commerce frontend is ready
+    // #[OA\Get(
+    //     path: '/api/products/{product}',
+    //     tags: ['Product'],
+    //     summary: 'Get a single product (public endpoint)',
+    //     description: 'Public endpoint to view product details. Only returns active e-commerce products.',
+    //     parameters: [
+    //         new OA\Parameter(name: 'product', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+    //     ],
+    //     responses: [
+    //         new OA\Response(
+    //             response: 200,
+    //             description: 'Product details',
+    //             content: new OA\JsonContent(
+    //                 properties: [
+    //                     new OA\Property(property: 'id', type: 'integer', example: 1),
+    //                     new OA\Property(property: 'name', type: 'string', example: 'Premium Rice 5kg'),
+    //                     new OA\Property(property: 'sku', type: 'string', example: 'GR-1001'),
+    //                     new OA\Property(
+    //                         property: 'category',
+    //                         type: 'object',
+    //                         properties: [
+    //                             new OA\Property(property: 'id', type: 'integer', example: 3),
+    //                             new OA\Property(property: 'name', type: 'string', example: 'Grocery'),
+    //                         ]
+    //                     ),
+    //                     new OA\Property(property: 'price', type: 'integer', example: 1250),
+    //                     new OA\Property(property: 'currency', type: 'string', example: 'PHP'),
+    //                     new OA\Property(property: 'stock', type: 'integer', example: 18),
+    //                     new OA\Property(property: 'is_low_stock', type: 'boolean', example: true),
+    //                     new OA\Property(property: 'created_at', type: 'string', format: 'date-time', example: '2026-01-10T10:00:00Z'),
+    //                     new OA\Property(property: 'updated_at', type: 'string', format: 'date-time', example: '2026-01-10T10:00:00Z'),
+    //                 ]
+    //             )
+    //         ),
+    //         new OA\Response(response: 404, description: 'Not found'),
+    //     ]
+    // )]
     public function show(int $product): ProductResource
     {
         $product = Product::query()
@@ -496,21 +498,22 @@ class ProductController extends Controller
         return (int) round(((float) $value) * 100);
     }
 
-    #[OA\Get(
-        path: '/api/products/sku/{sku}',
-        tags: ['Product'],
-        summary: 'Get a product by SKU (public endpoint)',
-        description: 'Public endpoint to find product by SKU. Only returns active e-commerce products.',
-        parameters: [
-            new OA\Parameter(name: 'sku', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
-            new OA\Parameter(name: 'store_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer'), description: 'Filter by store ID'),
-            new OA\Parameter(name: 'user_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer'), description: 'Filter by vendor/owner ID'),
-        ],
-        responses: [
-            new OA\Response(response: 200, description: 'Product details'),
-            new OA\Response(response: 404, description: 'Not found'),
-        ]
-    )]
+    // TODO: Re-enable when e-commerce frontend is ready
+    // #[OA\Get(
+    //     path: '/api/products/sku/{sku}',
+    //     tags: ['Product'],
+    //     summary: 'Get a product by SKU (public endpoint)',
+    //     description: 'Public endpoint to find product by SKU. Only returns active e-commerce products.',
+    //     parameters: [
+    //         new OA\Parameter(name: 'sku', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+    //         new OA\Parameter(name: 'store_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer'), description: 'Filter by store ID'),
+    //         new OA\Parameter(name: 'user_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer'), description: 'Filter by vendor/owner ID'),
+    //     ],
+    //     responses: [
+    //         new OA\Response(response: 200, description: 'Product details'),
+    //         new OA\Response(response: 404, description: 'Not found'),
+    //     ]
+    // )]
     public function showBySku(Request $request, string $sku): ProductResource
     {
         $query = Product::query()
@@ -542,21 +545,22 @@ class ProductController extends Controller
         return new ProductResource($product);
     }
 
-    #[OA\Get(
-        path: '/api/products/barcode/{code}',
-        tags: ['Product'],
-        summary: 'Get a product by barcode (public endpoint)',
-        description: 'Public endpoint to find product by barcode. Only returns active e-commerce products.',
-        parameters: [
-            new OA\Parameter(name: 'code', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
-            new OA\Parameter(name: 'store_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer'), description: 'Filter by store ID'),
-            new OA\Parameter(name: 'user_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer'), description: 'Filter by vendor/owner ID'),
-        ],
-        responses: [
-            new OA\Response(response: 200, description: 'Product details'),
-            new OA\Response(response: 404, description: 'Not found'),
-        ]
-    )]
+    // TODO: Re-enable when e-commerce frontend is ready
+    // #[OA\Get(
+    //     path: '/api/products/barcode/{code}',
+    //     tags: ['Product'],
+    //     summary: 'Get a product by barcode (public endpoint)',
+    //     description: 'Public endpoint to find product by barcode. Only returns active e-commerce products.',
+    //     parameters: [
+    //         new OA\Parameter(name: 'code', in: 'path', required: true, schema: new OA\Schema(type: 'string')),
+    //         new OA\Parameter(name: 'store_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer'), description: 'Filter by store ID'),
+    //         new OA\Parameter(name: 'user_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer'), description: 'Filter by vendor/owner ID'),
+    //     ],
+    //     responses: [
+    //         new OA\Response(response: 200, description: 'Product details'),
+    //         new OA\Response(response: 404, description: 'Not found'),
+    //     ]
+    // )]
     public function showByBarcode(Request $request, string $code): ProductResource
     {
         $query = Product::query()
