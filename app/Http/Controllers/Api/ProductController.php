@@ -454,6 +454,11 @@ class ProductController extends Controller
             }
             $path = $request->file('image')->store('products', 'public');
             $data['image'] = $path;
+        } elseif ($request->exists('image') && $request->input('image') === null) {
+            if ($product->image) {
+                Storage::disk('public')->delete($product->image);
+            }
+            $data['image'] = null;
         } else {
             unset($data['image']);
         }

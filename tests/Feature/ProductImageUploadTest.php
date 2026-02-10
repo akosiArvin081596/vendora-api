@@ -149,6 +149,59 @@ it('returns full image URL in product resource', function () {
     $response->assertJsonPath('data.image', Storage::disk('public')->url($path));
 })->skip('Public product endpoints temporarily disabled');
 
+it('clears existing image when image is set to null', function () {
+    $user = User::factory()->vendor()->create();
+    $category = Category::factory()->create();
+
+    $image = UploadedFile::fake()->create('photo.jpg', 100, 'image/jpeg');
+    $path = $image->store('products', 'public');
+
+    $product = Product::factory()->for($user)->for($category)->create([
+        'image' => $path,
+    ]);
+
+    Storage::disk('public')->assertExists($path);
+
+    Sanctum::actingAs($user);
+
+    $response = $this->putJson('/api/products/'.$product->id, [
+        'image' => null,
+    ]);
+
+    $response->assertSuccessful();
+
+    $product->refresh();
+    expect($product->image)->toBeNull();
+
+    Storage::disk('public')->assertMissing($path);
+});
+
+it('keeps existing image when image field is not sent', function () {
+    $user = User::factory()->vendor()->create();
+    $category = Category::factory()->create();
+
+    $image = UploadedFile::fake()->create('keep.jpg', 100, 'image/jpeg');
+    $path = $image->store('products', 'public');
+
+    $product = Product::factory()->for($user)->for($category)->create([
+        'image' => $path,
+    ]);
+
+    Sanctum::actingAs($user);
+
+    $response = $this->putJson('/api/products/'.$product->id, [
+        'name' => 'Renamed Product',
+    ]);
+
+    $response->assertSuccessful();
+
+    $product->refresh();
+    expect($product->name)->toBe('Renamed Product');
+    expect($product->image)->toBe($path);
+
+    Storage::disk('public')->assertExists($path);
+});
+
 it('validates image file type', function () {
     $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
