@@ -348,3 +348,112 @@ it('requires authentication to access inventory', function () {
 
     $response->assertUnauthorized();
 });
+
+it('adds stock with unit cost and updates product cost', function () {
+    $user = User::factory()->vendor()->create();
+    $category = Category::factory()->create();
+    $product = Product::factory()->for($user)->for($category)->create([
+        'stock' => 10,
+        'cost' => 5000, // 50.00 in cents
+        'price' => 7500, // 75.00 in cents
+    ]);
+
+    Sanctum::actingAs($user);
+
+    $response = $this->postJson('/api/inventory/adjustments', [
+        'product_id' => $product->id,
+        'type' => 'add',
+        'quantity' => 50,
+        'unit_cost' => 55.00,
+        'note' => 'New batch at higher price',
+    ]);
+
+    $response->assertCreated();
+    $response->assertJsonPath('inventory.stock', 60);
+
+    // Product cost should be updated to the new unit cost
+    $this->assertDatabaseHas('products', [
+        'id' => $product->id,
+        'stock' => 60,
+        'cost' => 5500, // 55.00 in cents
+    ]);
+
+    // Adjustment should record unit_cost
+    $this->assertDatabaseHas('inventory_adjustments', [
+        'product_id' => $product->id,
+        'type' => 'add',
+        'quantity' => 50,
+        'stock_before' => 10,
+        'stock_after' => 60,
+        'unit_cost' => 5500,
+    ]);
+
+    // Ledger entry should have amount calculated from unit cost
+    $this->assertDatabaseHas('ledger_entries', [
+        'product_id' => $product->id,
+        'type' => 'stock_in',
+        'quantity' => 50,
+        'amount' => 275000, // 55.00 * 50 = 2750.00 in cents
+        'balance_qty' => 60,
+    ]);
+});
+
+it('adds stock without unit cost and uses existing product cost for ledger', function () {
+    $user = User::factory()->vendor()->create();
+    $category = Category::factory()->create();
+    $product = Product::factory()->for($user)->for($category)->create([
+        'stock' => 10,
+        'cost' => 5000,
+        'price' => 7500,
+    ]);
+
+    Sanctum::actingAs($user);
+
+    $response = $this->postJson('/api/inventory/adjustments', [
+        'product_id' => $product->id,
+        'type' => 'add',
+        'quantity' => 20,
+    ]);
+
+    $response->assertCreated();
+
+    // Product cost should NOT change
+    $this->assertDatabaseHas('products', [
+        'id' => $product->id,
+        'cost' => 5000,
+    ]);
+
+    // Ledger entry should use existing product cost
+    $this->assertDatabaseHas('ledger_entries', [
+        'product_id' => $product->id,
+        'type' => 'stock_in',
+        'quantity' => 20,
+        'amount' => 100000, // 50.00 * 20 = 1000.00 in cents
+    ]);
+});
+
+it('does not update product cost when removing stock with unit cost', function () {
+    $user = User::factory()->vendor()->create();
+    $category = Category::factory()->create();
+    $product = Product::factory()->for($user)->for($category)->create([
+        'stock' => 30,
+        'cost' => 5000,
+    ]);
+
+    Sanctum::actingAs($user);
+
+    $response = $this->postJson('/api/inventory/adjustments', [
+        'product_id' => $product->id,
+        'type' => 'remove',
+        'quantity' => 5,
+        'unit_cost' => 60.00,
+    ]);
+
+    $response->assertCreated();
+
+    // Cost should remain unchanged on remove
+    $this->assertDatabaseHas('products', [
+        'id' => $product->id,
+        'cost' => 5000,
+    ]);
+});

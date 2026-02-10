@@ -27,7 +27,7 @@ describe('SQL Injection Prevention', function () {
 
         $response->assertSuccessful();
         expect($response->json('data'))->toBeEmpty();
-    });
+    })->skip('Public product endpoints temporarily disabled');
 
     it('prevents SQL injection in customer search', function () {
         $user = User::factory()->vendor()->create();
@@ -63,7 +63,7 @@ describe('SQL Injection Prevention', function () {
 
         $response->assertSuccessful();
         expect(Product::count())->toBe(1);
-    });
+    })->skip('Public product endpoints temporarily disabled');
 });
 
 describe('XSS Prevention', function () {

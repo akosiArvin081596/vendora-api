@@ -7,6 +7,7 @@ use App\Http\Requests\StoreLedgerEntryRequest;
 use App\Http\Resources\LedgerEntryResource;
 use App\Models\LedgerEntry;
 use App\Models\Product;
+use App\Services\FifoCostService;
 use App\Traits\HasStoreContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,8 @@ use OpenApi\Attributes as OA;
 class LedgerController extends Controller
 {
     use HasStoreContext;
+
+    public function __construct(public FifoCostService $fifoCostService) {}
 
     #[OA\Get(
         path: '/api/ledger',
@@ -182,6 +185,18 @@ class LedgerController extends Controller
 
                 $product->update(['stock' => $product->stock + $data['quantity']]);
                 $entryData['balance_qty'] = $product->stock;
+
+                $entry = LedgerEntry::query()->create($entryData);
+
+                $this->fifoCostService->createLayer([
+                    'product_id' => $product->id,
+                    'user_id' => $user->id,
+                    'quantity' => $data['quantity'],
+                    'unit_cost' => $product->cost ?? $product->price,
+                    'reference' => $entry->reference ?? 'LEDGER-'.$entry->id,
+                ]);
+
+                return $entry;
             }
 
             return LedgerEntry::query()->create($entryData);

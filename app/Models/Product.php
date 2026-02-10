@@ -119,4 +119,20 @@ class Product extends Model
     {
         return $this->hasMany(ProductBulkPrice::class)->orderBy('min_qty');
     }
+
+    public function costLayers(): HasMany
+    {
+        return $this->hasMany(InventoryCostLayer::class);
+    }
+
+    /**
+     * Active cost layers with remaining quantity, ordered by FIFO (oldest first).
+     */
+    public function activeCostLayers(): HasMany
+    {
+        return $this->hasMany(InventoryCostLayer::class)
+            ->where('remaining_quantity', '>', 0)
+            ->orderBy('acquired_at')
+            ->orderBy('id');
+    }
 }

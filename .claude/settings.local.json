@@ -47,7 +47,10 @@
       "Bash(powershell:*)",
       "Bash(cmd /c \"mkdir C:\\\\vendora\\\\empty_dir & robocopy C:\\\\vendora\\\\empty_dir C:\\\\vendora\\\\node_modules\\\\react-native-bluetooth-escpos-printer\\\\android\\\\build /MIR >nul 2>&1 & rmdir /s /q C:\\\\vendora\\\\node_modules\\\\react-native-bluetooth-escpos-printer\\\\android\\\\build & rmdir C:\\\\vendora\\\\empty_dir\")",
       "Bash(cmd /c \"mkdir C:\\\\vendora\\\\empty_dir 2>nul & robocopy C:\\\\vendora\\\\empty_dir C:\\\\vendora\\\\node_modules\\\\react-native-bluetooth-escpos-printer\\\\android\\\\build /MIR >nul 2>&1 & rmdir /s /q C:\\\\vendora\\\\node_modules\\\\react-native-bluetooth-escpos-printer\\\\android\\\\build 2>nul & rmdir C:\\\\vendora\\\\empty_dir 2>nul\")",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "mcp__laravel-boost__last-error",
+      "mcp__laravel-boost__browser-logs",
+      "mcp__laravel-boost__read-log-entries"
     ]
   },
   "enableAllProjectMcpServers": true,

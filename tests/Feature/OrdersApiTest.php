@@ -100,6 +100,7 @@ it('creates an order', function () {
     $category = Category::factory()->create();
     $product = Product::factory()->for($user)->for($category)->create([
         'price' => 100,
+        'cost' => 60,
         'stock' => 50,
     ]);
 
@@ -127,6 +128,11 @@ it('creates an order', function () {
     $this->assertDatabaseHas('products', [
         'id' => $product->id,
         'stock' => 48,
+    ]);
+
+    $this->assertDatabaseHas('order_items', [
+        'product_id' => $product->id,
+        'unit_cost' => 60,
     ]);
 });
 
@@ -313,6 +319,58 @@ it('requires authentication to access orders', function () {
     $response = $this->getJson('/api/orders');
 
     $response->assertUnauthorized();
+});
+
+it('snapshots unit_cost on order items', function () {
+    $user = User::factory()->create();
+    $category = Category::factory()->create();
+    $product = Product::factory()->for($user)->for($category)->create([
+        'price' => 200,
+        'cost' => 120,
+        'stock' => 50,
+    ]);
+
+    Sanctum::actingAs($user);
+
+    $this->postJson('/api/orders', [
+        'ordered_at' => '2026-01-10',
+        'status' => 'pending',
+        'items' => [
+            ['product_id' => $product->id, 'quantity' => 3],
+        ],
+    ])->assertCreated();
+
+    $this->assertDatabaseHas('order_items', [
+        'product_id' => $product->id,
+        'quantity' => 3,
+        'unit_price' => 200,
+        'unit_cost' => 120,
+    ]);
+});
+
+it('falls back to price when product has no cost', function () {
+    $user = User::factory()->create();
+    $category = Category::factory()->create();
+    $product = Product::factory()->for($user)->for($category)->create([
+        'price' => 150,
+        'cost' => null,
+        'stock' => 20,
+    ]);
+
+    Sanctum::actingAs($user);
+
+    $this->postJson('/api/orders', [
+        'ordered_at' => '2026-01-10',
+        'status' => 'pending',
+        'items' => [
+            ['product_id' => $product->id, 'quantity' => 2],
+        ],
+    ])->assertCreated();
+
+    $this->assertDatabaseHas('order_items', [
+        'product_id' => $product->id,
+        'unit_cost' => 150,
+    ]);
 });
 
 it('generates sequential order numbers', function () {

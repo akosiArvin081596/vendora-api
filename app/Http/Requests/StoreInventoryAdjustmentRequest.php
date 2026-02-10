@@ -30,6 +30,8 @@ class StoreInventoryAdjustmentRequest extends FormRequest
             ],
             'type' => ['required', 'string', Rule::in(['add', 'remove', 'set'])],
             'quantity' => ['required', 'integer', 'min:0'],
+            'unit_cost' => ['nullable', 'numeric', 'min:0'],
+            'cost_layer_id' => ['nullable', 'integer', Rule::exists('inventory_cost_layers', 'id')],
             'note' => ['nullable', 'string', 'max:255'],
         ];
     }
@@ -47,6 +49,9 @@ class StoreInventoryAdjustmentRequest extends FormRequest
             'quantity.required' => 'Quantity is required.',
             'quantity.integer' => 'Quantity must be an integer.',
             'quantity.min' => 'Quantity must be zero or greater.',
+            'unit_cost.numeric' => 'Unit cost must be a number.',
+            'unit_cost.min' => 'Unit cost must be zero or greater.',
+            'cost_layer_id.exists' => 'The specified cost layer does not exist.',
         ];
     }
 }

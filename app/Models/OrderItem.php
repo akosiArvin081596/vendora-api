@@ -6,6 +6,7 @@ use App\Models\Concerns\SerializesDatesInAppTimezone;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class OrderItem extends Model
 {
@@ -22,6 +23,7 @@ class OrderItem extends Model
         'product_id',
         'quantity',
         'unit_price',
+        'unit_cost',
         'line_total',
     ];
 
@@ -33,6 +35,7 @@ class OrderItem extends Model
         return [
             'quantity' => 'integer',
             'unit_price' => 'integer',
+            'unit_cost' => 'integer',
             'line_total' => 'integer',
         ];
     }
@@ -45,5 +48,10 @@ class OrderItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function costLayerConsumptions(): HasMany
+    {
+        return $this->hasMany(CostLayerConsumption::class);
     }
 }

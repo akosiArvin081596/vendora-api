@@ -20,12 +20,14 @@ class OrderItemFactory extends Factory
     {
         $quantity = $this->faker->numberBetween(1, 5);
         $unitPrice = $this->faker->numberBetween(20, 500);
+        $unitCost = $this->faker->numberBetween(10, $unitPrice);
 
         return [
             'order_id' => Order::factory(),
             'product_id' => Product::factory(),
             'quantity' => $quantity,
             'unit_price' => $unitPrice,
+            'unit_cost' => $unitCost,
             'line_total' => $quantity * $unitPrice,
         ];
     }

@@ -6,6 +6,7 @@ use App\Models\Concerns\SerializesDatesInAppTimezone;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class InventoryAdjustment extends Model
 {
@@ -25,6 +26,7 @@ class InventoryAdjustment extends Model
         'quantity',
         'stock_before',
         'stock_after',
+        'unit_cost',
         'note',
     ];
 
@@ -37,6 +39,7 @@ class InventoryAdjustment extends Model
             'quantity' => 'integer',
             'stock_before' => 'integer',
             'stock_after' => 'integer',
+            'unit_cost' => 'integer',
         ];
     }
 
@@ -56,5 +59,10 @@ class InventoryAdjustment extends Model
     public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class);
+    }
+
+    public function costLayer(): HasOne
+    {
+        return $this->hasOne(InventoryCostLayer::class);
     }
 }

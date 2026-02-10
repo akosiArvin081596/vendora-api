@@ -189,6 +189,7 @@ it('creates ledger entries when an order is placed', function () {
     $product = Product::factory()->for($user)->for($category)->create([
         'stock' => 100,
         'price' => 500,
+        'cost' => 300,
     ]);
 
     Sanctum::actingAs($user);
@@ -201,11 +202,13 @@ it('creates ledger entries when an order is placed', function () {
         ],
     ]);
 
-    // Should have a sale entry and a stock_out entry
+    // Should have a sale entry, a COGS expense entry, and a stock_out entry
     $saleEntries = LedgerEntry::query()->where('user_id', $user->id)->where('type', 'sale')->count();
+    $expenseEntries = LedgerEntry::query()->where('user_id', $user->id)->where('type', 'expense')->count();
     $stockOutEntries = LedgerEntry::query()->where('user_id', $user->id)->where('type', 'stock_out')->count();
 
     expect($saleEntries)->toBe(1);
+    expect($expenseEntries)->toBe(1);
     expect($stockOutEntries)->toBe(1);
 });
 
@@ -288,4 +291,98 @@ it('does not create ledger entry when product is created with zero stock', funct
         ->first();
 
     expect($entry)->toBeNull();
+});
+
+it('creates a COGS expense ledger entry when order is placed', function () {
+    $user = User::factory()->vendor()->create();
+    $category = Category::factory()->create();
+    $product = Product::factory()->for($user)->for($category)->create([
+        'stock' => 50,
+        'price' => 1000,
+        'cost' => 600,
+    ]);
+
+    Sanctum::actingAs($user);
+
+    $this->postJson('/api/orders', [
+        'ordered_at' => now()->toDateString(),
+        'status' => 'completed',
+        'items' => [
+            ['product_id' => $product->id, 'quantity' => 5],
+        ],
+    ])->assertCreated();
+
+    $cogsEntry = LedgerEntry::query()
+        ->where('user_id', $user->id)
+        ->where('type', 'expense')
+        ->where('description', 'like', 'COGS%')
+        ->first();
+
+    expect($cogsEntry)->not->toBeNull();
+    expect($cogsEntry->amount)->toBe(-3000); // 5 * 600 = 3000, stored as negative
+    expect($cogsEntry->category)->toBe('financial');
+});
+
+it('calculates net profit correctly with COGS', function () {
+    $user = User::factory()->vendor()->create();
+    $category = Category::factory()->create();
+    $product = Product::factory()->for($user)->for($category)->create([
+        'stock' => 100,
+        'price' => 1000,
+        'cost' => 700,
+    ]);
+
+    Sanctum::actingAs($user);
+
+    $this->postJson('/api/orders', [
+        'ordered_at' => now()->toDateString(),
+        'status' => 'completed',
+        'items' => [
+            ['product_id' => $product->id, 'quantity' => 10],
+        ],
+    ])->assertCreated();
+
+    // Revenue = 10 * 1000 = 10000, COGS = 10 * 700 = 7000, Net Profit = 3000
+    $response = $this->getJson('/api/ledger/summary');
+
+    $response->assertSuccessful();
+    $response->assertJson([
+        'data' => [
+            'total_revenue' => 10000,
+            'total_expenses' => 7000,
+            'net_profit' => 3000,
+        ],
+    ]);
+});
+
+it('shows zero profit margin when product has no cost set', function () {
+    $user = User::factory()->vendor()->create();
+    $category = Category::factory()->create();
+    $product = Product::factory()->for($user)->for($category)->create([
+        'stock' => 20,
+        'price' => 500,
+        'cost' => null,
+    ]);
+
+    Sanctum::actingAs($user);
+
+    $this->postJson('/api/orders', [
+        'ordered_at' => now()->toDateString(),
+        'status' => 'completed',
+        'items' => [
+            ['product_id' => $product->id, 'quantity' => 4],
+        ],
+    ])->assertCreated();
+
+    // Revenue = 4 * 500 = 2000, COGS = 4 * 500 = 2000 (falls back to price), Net Profit = 0
+    $response = $this->getJson('/api/ledger/summary');
+
+    $response->assertSuccessful();
+    $response->assertJson([
+        'data' => [
+            'total_revenue' => 2000,
+            'total_expenses' => 2000,
+            'net_profit' => 0,
+        ],
+    ]);
 });

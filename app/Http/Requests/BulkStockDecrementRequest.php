@@ -8,7 +8,7 @@ class BulkStockDecrementRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->isVendor() ?? false;
+        return $this->user()?->isVendor() || $this->user()?->isAdmin();
     }
 
     /**

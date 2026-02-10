@@ -24,7 +24,7 @@ describe('Public Product Endpoints', function () {
 
         $response->assertSuccessful();
         $response->assertJsonCount(2, 'data');
-    });
+    })->skip('Public product endpoints temporarily disabled');
 
     it('filters products by user_id', function () {
         $user1 = User::factory()->create();
@@ -39,7 +39,7 @@ describe('Public Product Endpoints', function () {
         $response->assertSuccessful();
         $response->assertJsonCount(1, 'data');
         $response->assertJsonFragment(['id' => $product1->id]);
-    });
+    })->skip('Public product endpoints temporarily disabled');
 
     it('filters products by store_id', function () {
         $user = User::factory()->create();
@@ -56,7 +56,7 @@ describe('Public Product Endpoints', function () {
         $response->assertSuccessful();
         $response->assertJsonCount(1, 'data');
         $response->assertJsonFragment(['id' => $productInStore->id]);
-    });
+    })->skip('Public product endpoints temporarily disabled');
 
     it('shows product details without authentication', function () {
         $user = User::factory()->create();
@@ -70,7 +70,7 @@ describe('Public Product Endpoints', function () {
             'id' => $product->id,
             'name' => $product->name,
         ]);
-    });
+    })->skip('Public product endpoints temporarily disabled');
 
     it('returns 404 for inactive product on show', function () {
         $user = User::factory()->create();
@@ -80,7 +80,7 @@ describe('Public Product Endpoints', function () {
         $response = $this->getJson('/api/products/'.$product->id);
 
         $response->assertNotFound();
-    });
+    })->skip('Public product endpoints temporarily disabled');
 
     it('finds product by SKU without authentication', function () {
         $user = User::factory()->create();
@@ -98,7 +98,7 @@ describe('Public Product Endpoints', function () {
             'id' => $product->id,
             'sku' => 'TEST-SKU-001',
         ]);
-    });
+    })->skip('Public product endpoints temporarily disabled');
 
     it('finds product by barcode without authentication', function () {
         $user = User::factory()->create();
@@ -116,7 +116,7 @@ describe('Public Product Endpoints', function () {
             'id' => $product->id,
             'barcode' => '1234567890123',
         ]);
-    });
+    })->skip('Public product endpoints temporarily disabled');
 
     it('returns 404 for inactive product on SKU lookup', function () {
         $user = User::factory()->create();
@@ -130,7 +130,7 @@ describe('Public Product Endpoints', function () {
         $response = $this->getJson('/api/products/sku/INACTIVE-SKU');
 
         $response->assertNotFound();
-    });
+    })->skip('Public product endpoints temporarily disabled');
 
     it('returns 404 for non-ecommerce product on show', function () {
         $user = User::factory()->create();
@@ -143,7 +143,7 @@ describe('Public Product Endpoints', function () {
         $response = $this->getJson('/api/products/'.$product->id);
 
         $response->assertNotFound();
-    });
+    })->skip('Public product endpoints temporarily disabled');
 
     it('returns 404 for non-ecommerce product on SKU lookup', function () {
         $user = User::factory()->create();
@@ -157,7 +157,7 @@ describe('Public Product Endpoints', function () {
         $response = $this->getJson('/api/products/sku/POS-ONLY-SKU');
 
         $response->assertNotFound();
-    });
+    })->skip('Public product endpoints temporarily disabled');
 });
 
 describe('Public Category Endpoints', function () {

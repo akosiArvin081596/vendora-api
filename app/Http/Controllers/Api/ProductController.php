@@ -11,6 +11,7 @@ use App\Http\Resources\ProductResource;
 use App\Models\Category;
 use App\Models\LedgerEntry;
 use App\Models\Product;
+use App\Services\FifoCostService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -21,6 +22,8 @@ use OpenApi\Attributes as OA;
 
 class ProductController extends Controller
 {
+    public function __construct(public FifoCostService $fifoCostService) {}
+
     // TODO: Re-enable when e-commerce frontend is ready
     // #[OA\Get(
     //     path: '/api/products',
@@ -288,15 +291,29 @@ class ProductController extends Controller
             }
         }
 
-        // Create ledger entry for initial stock
+        // Create ledger entry and cost layer for initial stock
         if ($product->stock > 0) {
+            $unitCost = $product->cost ?? $product->price;
+            $totalAmount = $unitCost * $product->stock;
+
+            $this->fifoCostService->createLayer([
+                'product_id' => $product->id,
+                'user_id' => $request->user()->id,
+                'quantity' => $product->stock,
+                'unit_cost' => $unitCost,
+                'reference' => 'INIT-'.$product->id,
+            ]);
+
             LedgerEntry::query()->create([
                 'user_id' => $request->user()->id,
                 'product_id' => $product->id,
                 'type' => 'stock_in',
                 'category' => 'inventory',
                 'quantity' => $product->stock,
+                'amount' => $totalAmount,
                 'balance_qty' => $product->stock,
+                'balance_amount' => $totalAmount,
+                'reference' => 'INIT-'.$product->id,
                 'description' => 'Initial stock for new product: '.$product->name,
             ]);
         }
@@ -687,6 +704,12 @@ class ProductController extends Controller
 
                     continue;
                 }
+
+                $this->fifoCostService->ensureLayersExist($product, $userId);
+                $this->fifoCostService->consumeLayers([
+                    'product_id' => $product->id,
+                    'quantity' => $item['quantity'],
+                ]);
 
                 $product->decrement('stock', $item['quantity']);
                 $results[] = [

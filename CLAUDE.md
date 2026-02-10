@@ -351,290 +351,150 @@ $pages->assertNoJavascriptErrors()->assertNoConsoleLogs();
 
 ---
 
-# VENDORA Project Overview
+# CLAUDE.md
 
-## Project Description
-VENDORA is a multi-vendor e-commerce platform with POS (Point of Sale) capabilities. The system supports multiple stores per vendor with staff management, inventory tracking, and comprehensive order/payment processing.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Common Commands
+
+```bash
+# Development
+composer run dev                    # Start server, queue, and vite concurrently
+php artisan serve                   # Start API server only
+composer run setup                  # Full project setup (install, migrate, build)
+
+# Testing (Pest)
+php artisan test --compact                              # Run all tests
+php artisan test --compact tests/Feature/ExampleTest.php  # Run single file
+php artisan test --compact --filter=testName             # Filter by name
+
+# Code Formatting
+vendor/bin/pint --dirty             # Format only changed files (run before finalizing)
+
+# Database
+php artisan migrate                 # Run migrations
+php artisan db:seed                 # Seed database
+
+# Swagger
+php artisan l5-swagger:generate     # Regenerate API docs
+```
 
 ## Full Stack Architecture
-| Component | Technology | Location |
-|-----------|------------|----------|
-| Frontend | React Native (Mobile) | `c:\Users\DSWDSRV-CARAGA\Desktop\VENDORA\development\vendora-frontend-mobile` |
+
+VENDORA is a **multi-vendor e-commerce platform with POS** — three repos working together:
+
+| Component | Tech | Path |
+|-----------|------|------|
 | Backend | Laravel 12 REST API | `c:\Users\DSWDSRV-CARAGA\Desktop\VENDORA\development\vendora-backend-rest-api` |
-| Real-time | Node.js WebSocket Server | `c:\Users\DSWDSRV-CARAGA\Desktop\VENDORA\development\vendora-websocket-server` |
+| Frontend | React Native (Expo 54) | `c:\vendora` |
+| WebSocket | Node.js + Socket.io | `c:\Users\DSWDSRV-CARAGA\Desktop\VENDORA\development\vendora-websocket-server` |
 
----
+### Frontend — React Native (`c:\vendora`)
 
-## Backend Directory Structure
+Expo 54 + React Navigation + NativeWind (TailwindCSS) + Axios + Socket.io Client.
 
 ```
-app/
-├── Enums/
-│   ├── StoreRole.php        # Owner, Manager, Cashier, Staff roles with permissions
-│   ├── UserStatus.php       # Active, Inactive, Suspended
-│   └── UserType.php         # Admin, Vendor, Manager, Cashier, Buyer (with hierarchy)
-├── Http/
-│   ├── Controllers/Api/
-│   │   ├── Admin/
-│   │   │   ├── UserController.php     # Admin user CRUD + status
-│   │   │   └── VendorController.php   # Vendor creation
-│   │   ├── AuthController.php         # Login/Register/Logout
-│   │   ├── CategoryController.php     # Product categories CRUD
-│   │   ├── CustomerController.php     # Customer management + summary
-│   │   ├── DashboardController.php    # KPIs, trends, analytics
-│   │   ├── InventoryController.php    # Stock tracking + adjustments
-│   │   ├── LedgerController.php       # Financial ledger entries
-│   │   ├── OrderController.php        # Order CRUD + summary
-│   │   ├── PaymentController.php      # Payment processing + summary
-│   │   ├── ProductController.php      # Products CRUD + stock ops + barcode/SKU lookup
-│   │   ├── StoreController.php        # Store CRUD
-│   │   ├── StoreProductController.php # Per-store inventory
-│   │   ├── StoreStaffController.php   # Staff assignment/management
-│   │   └── UserController.php         # Current user info
-│   ├── Middleware/
-│   │   └── SetStoreContext.php        # Store context middleware
-│   ├── Requests/                      # Form Request validation classes (20+)
-│   └── Resources/                     # API Resource transformers (25+)
-├── Models/
-│   ├── Concerns/
-│   │   └── SerializesDatesInAppTimezone.php
-│   ├── AuditLog.php
-│   ├── Category.php
-│   ├── Customer.php
-│   ├── InventoryAdjustment.php
-│   ├── LedgerEntry.php
-│   ├── Order.php
-│   ├── OrderItem.php
-│   ├── Payment.php
-│   ├── Product.php
-│   ├── ProductBulkPrice.php
-│   ├── Store.php
-│   ├── StoreProduct.php
-│   ├── User.php
-│   └── VendorProfile.php
-├── Observers/
-│   ├── CategoryObserver.php
-│   ├── OrderObserver.php
-│   └── ProductObserver.php
-├── Policies/
-│   └── StorePolicy.php
-├── Services/
-│   └── WebhookService.php
-└── Traits/
-    ├── Auditable.php
-    └── HasStoreContext.php
-
-database/
-├── factories/           # 13 factories for all models
-├── migrations/          # 28 migrations
-└── seeders/
-
-tests/
-├── Feature/            # 20+ feature tests (Auth, CRUD, Security, etc.)
-└── Unit/
+src/
+├── screens/           # App screens
+│   ├── LoginScreen.js
+│   ├── DashboardScreen.js
+│   ├── POSScreen.js
+│   ├── ProductsScreen.js
+│   ├── InventoryScreen.js
+│   ├── OrdersScreen.js
+│   ├── SalesScreen.js
+│   ├── LedgerScreen.js
+│   ├── StoreScreen.js
+│   ├── ReportsScreen.js
+│   ├── SettingsScreen.js
+│   └── AdminScreen.js
+├── navigation/
+│   └── RootNavigator.js
+├── context/           # React Context providers (state management)
+│   ├── AuthContext.js, CartContext.js, ProductContext.js
+│   ├── OrderContext.js, CustomerContext.js
+│   ├── AdminContext.js, SocketContext.js, ReviewContext.js
+├── services/          # API service layer
+│   ├── api.js, authService.js, productService.js
+│   ├── categoryService.js, inventoryService.js
+│   ├── ledgerService.js, socketService.js
+│   └── thermalPrinterService.js
+├── api/               # API client setup
+│   ├── client.js      # Axios instance
+│   ├── auth.js, admin.js
+├── components/        # Reusable UI components
+│   ├── admin/         # UserManagement, VendorApprovals, ActivityLogs, etc.
+│   ├── reviews/       # RatingSummary, ReviewForm, ReviewList, ReviewModal
+│   ├── Cart*, Checkout*, Receipt*, Product*, Store* modals/panels
+│   ├── BluetoothPrinterModal.js, PrintableReceipt.js
+│   └── Toast.js, VendoraLoading.js, ActionSheet.js
+├── config/
+│   └── env.js         # API URL & environment config
+├── utils/
+│   └── checkoutHelpers.js, permissions.js, receiptHelpers.js, timezone.js
+└── data/              # Static/seed data
 ```
 
----
+Key features: POS with cart, thermal/Bluetooth receipt printing, barcode scanning (expo-camera), image picker, real-time sync via Socket.io.
 
-## Database Schema (MySQL)
+### WebSocket Server (`vendora-websocket-server`)
 
-### Core Tables
-| Table | Description | Key Columns |
-|-------|-------------|-------------|
-| `users` | All user types | id, name, email, password, user_type, status, phone, last_login_at |
-| `vendor_profiles` | Vendor business details | user_id, business_name, business_address, tax_id |
-| `stores` | Physical/virtual stores | id, user_id (owner), name, code, address, phone, email, is_active, settings (JSON) |
-| `store_user` | Staff assignments (pivot) | store_id, user_id, role, permissions (JSON), assigned_at |
-| `products` | Product catalog | id, user_id, category_id, name, sku, barcode, price, cost, stock, min_stock, max_stock, is_active, is_ecommerce |
-| `product_bulk_prices` | Tiered pricing | product_id, min_qty, price |
-| `store_products` | Per-store inventory | store_id, product_id, stock, min_stock, max_stock, price_override, is_available |
-| `categories` | Product categories | id, user_id, name, description, parent_id, image, is_active, sort_order |
-| `customers` | Store customers | id, user_id, store_id, name, email, phone, address, notes |
-| `orders` | Sales orders | id, user_id, store_id, customer_id, processed_by, order_number, ordered_at, status, items_count, total, currency |
-| `order_items` | Order line items | order_id, product_id, quantity, unit_price, total |
-| `payments` | Payment records | id, order_id, store_id, amount, payment_method, status, reference |
-| `inventory_adjustments` | Stock changes | id, product_id, store_id, user_id, quantity, type, reason |
-| `ledger_entries` | Financial ledger | id, user_id, store_id, type, amount, description, reference |
-| `audit_logs` | Activity logging | auditable_type, auditable_id, action, old_values, new_values |
+Node.js + Express + Socket.io v4.7.2. Bridges Laravel backend events to mobile clients in real-time.
 
-### System Tables
-- `cache`, `cache_locks` - Laravel cache
-- `sessions` - Session management
-- `jobs`, `job_batches`, `failed_jobs` - Queue system
-- `personal_access_tokens` - Sanctum API tokens
+```
+src/
+├── index.js           # Express + Socket.io server (port 3001)
+├── config.js          # Env config loader (LARAVEL_API_URL, WEBHOOK_SECRET, etc.)
+├── socket/
+│   ├── index.js       # Socket.io initialization
+│   ├── auth.js        # Validates Sanctum tokens via Laravel API /auth/me
+│   └── handlers.js    # Event broadcasting (user, product, stock, order, category events)
+├── webhook/
+│   ├── routes.js      # POST /webhook/events, /webhook/batch, /webhook/health, /webhook/logs/ui
+│   ├── verify.js      # HMAC-SHA256 signature verification
+│   └── handlers.js    # Webhook → Socket.io broadcast
+└── utils/
+    ├── logger.js      # Structured logging
+    └── log-store.js   # In-memory log buffer (200 entries)
+```
 
----
+**Integration flow**: Laravel Observers → WebhookService → POST /webhook/events (HMAC signed) → Node.js verifies → Socket.io broadcasts to rooms (`user:{id}`, `role:{role}`, `broadcast`).
 
-## Model Relationships
+## Backend Architecture
 
-### User
-- `hasOne`: VendorProfile
-- `hasMany`: Products, InventoryAdjustments, Customers, Orders, ownedStores
-- `belongsToMany`: assignedStores (via store_user pivot)
+### Multi-Tenancy Model
+- **User-scoped data**: Products, categories, customers, orders, payments, ledger entries are all owned by a user (`user_id` FK). Controllers filter by `auth()->id()`.
+- **Store layer**: Users (vendors) can have multiple stores. Stores have their own staff, inventory overrides (`store_products`), and orders.
+- **Staff assignments**: `store_user` pivot table with `role` (StoreRole enum) and `permissions` (JSON). The `SetStoreContext` middleware (`store.context` alias) resolves store context.
 
-### Store
-- `belongsTo`: owner (User)
-- `belongsToMany`: staff (Users), products (via store_products)
-- `hasMany`: storeProducts, orders, customers, payments, inventoryAdjustments
+### Key Enums (`app/Enums/`)
+- **UserType**: Admin(4) > Manager(3) > Vendor(2) = Cashier(2) > Buyer(0) — hierarchy levels control access
+- **UserStatus**: Active, Inactive, Suspended
+- **StoreRole**: Owner (all perms), Manager, Cashier, Staff — each with granular permission arrays
 
-### Product
-- `belongsTo`: User, Category
-- `hasMany`: inventoryAdjustments, orderItems, storeProducts, bulkPrices
-- `belongsToMany`: stores (via store_products)
+### Traits & Concerns
+- **Auditable** (`App\Traits\Auditable`): Auto-logs model changes to `audit_logs` table
+- **HasStoreContext** (`App\Traits\HasStoreContext`): Multi-tenant store awareness for controllers
+- **SerializesDatesInAppTimezone** (`App\Models\Concerns`): Consistent timezone serialization
 
-### Order
-- `belongsTo`: User, Customer, Store, processedBy (User)
-- `hasMany`: items (OrderItem), payments
+### Observers (`app/Observers/`)
+CategoryObserver, OrderObserver, ProductObserver — handle side effects on model events.
 
----
+### API Authentication
+Sanctum token-based auth. All protected routes use `auth:sanctum` middleware. Auth endpoints (`/api/auth/*`) are rate-limited to 5/min.
 
-## API Routes Summary
+### Product Endpoint Security
+Public product endpoints (`GET /products`, etc.) are **temporarily disabled** (commented in `routes/api.php`). POS uses `GET /products/my` which auto-filters by authenticated user — never expose user_id as a query parameter.
 
-### Authentication (`/api/auth`)
-- `POST /register` - Register new user (rate limited: 5/min)
-- `POST /login` - Login (rate limited: 5/min)
-- `POST /logout` - Logout (auth required)
-- `GET /me` - Current user info (auth required)
+### Swagger (L5-Swagger)
+OpenAPI annotations are inline in controllers. Test via Swagger UI: login → copy token → Authorize button → bearerAuth.
 
-### Public Routes
-- `GET /products` - List products (e-commerce browsing)
-- `GET /products/{product}` - Show product
-- `GET /products/sku/{sku}` - Find by SKU
-- `GET /products/barcode/{code}` - Find by barcode
-- `GET /categories` - List categories
-- `GET /categories/{category}` - Show category
+### Database
+MySQL. Tests run against a real MySQL database (configured in `phpunit.xml`). All models have factories in `database/factories/`.
 
-### POS Endpoint (auth required)
-- `GET /products/my` - List authenticated user's products only (for POS mode, secure)
+## Session History / Changelog
 
-### Protected Routes (require `auth:sanctum`)
-
-#### Products
-- `POST /products` - Create product
-- `PUT|PATCH /products/{product}` - Update product
-- `DELETE /products/{product}` - Delete product
-- `PATCH /products/{product}/stock` - Update stock
-- `POST /products/bulk-stock-decrement` - Bulk stock decrement
-
-#### Categories
-- `POST /categories` - Create category
-- `PUT|PATCH /categories/{category}` - Update category
-- `DELETE /categories/{category}` - Delete category
-
-#### Dashboard Analytics
-- `GET /dashboard/kpis` - Key performance indicators
-- `GET /dashboard/sales-trend` - Sales over time
-- `GET /dashboard/orders-by-channel` - Channel breakdown
-- `GET /dashboard/payment-methods` - Payment method stats
-- `GET /dashboard/top-products` - Best sellers
-- `GET /dashboard/inventory-health` - Stock health
-- `GET /dashboard/low-stock-alerts` - Low stock warnings
-- `GET /dashboard/pending-orders` - Pending orders
-- `GET /dashboard/recent-activity` - Recent activity
-
-#### Resource Routes (CRUD + summary)
-- `/customers` - CustomerController (apiResource + summary)
-- `/orders` - OrderController (apiResource + summary)
-- `/payments` - PaymentController (apiResource + summary)
-- `/stores` - StoreController (apiResource)
-- `/inventory` - InventoryController (index, summary, adjustments.store)
-- `/ledger` - LedgerController (index, summary, store)
-
-#### Store Management
-- `GET|POST /stores/{store}/staff` - List/add staff
-- `PATCH|DELETE /stores/{store}/staff/{user}` - Update/remove staff
-- `GET /store-roles` - Available roles
-
-#### Store Products (per-store inventory)
-- `GET|POST /stores/{store}/products` - List/add products
-- `GET|PATCH|DELETE /stores/{store}/products/{product}` - Product operations
-
-#### Admin Routes (`/api/admin`)
-- `GET|POST /users` - List/create users
-- `GET|PUT|DELETE /users/{user}` - User CRUD
-- `PATCH /users/{user}/status` - Update user status
-- `POST /vendors` - Create vendor
-
----
-
-## Key Enums Reference
-
-### UserType (hierarchy levels)
-| Type | Level | Description |
-|------|-------|-------------|
-| Admin | 4 | Full system access |
-| Manager | 3 | Can manage Cashiers and Buyers |
-| Vendor | 2 | Store owner |
-| Cashier | 2 | POS operations |
-| Buyer | 0 | Customer/shopper |
-
-### UserStatus
-- `Active` - Can login and use system
-- `Inactive` - Account disabled
-- `Suspended` - Temporarily blocked
-
-### StoreRole (with permissions)
-| Role | Permissions |
-|------|-------------|
-| Owner | `*` (all) |
-| Manager | products.*, orders.*, inventory.*, customers.*, payments.*, reports.view, staff.view |
-| Cashier | products.view, orders.view/create, customers.view/create, payments.view/create |
-| Staff | products.view, orders.view, inventory.view |
-
----
-
-## Testing Structure
-
-### Feature Tests
-| Test File | Coverage |
-|-----------|----------|
-| `AdminSeederTest.php` | Admin seeding |
-| `Auth/*.php` | Authentication flows |
-| `CategoryCrudTest.php` | Category CRUD |
-| `CategorySeederTest.php` | Category seeding |
-| `CustomersApiTest.php` | Customer API |
-| `DashboardApiTest.php` | Dashboard endpoints |
-| `InventoryApiTest.php` | Inventory operations |
-| `LedgerTest.php` | Ledger entries |
-| `OrdersApiTest.php` | Order processing |
-| `PaymentsApiTest.php` | Payment handling |
-| `ProductsApiTest.php` | Product CRUD |
-| `ProductExtendedTest.php` | Extended product features |
-| `ProductImageUploadTest.php` | Image uploads |
-| `PublicProductsApiTest.php` | Public product access |
-| `SecurityAuthenticationTest.php` | Auth security |
-| `SecurityAuthorizationTest.php` | Authorization |
-| `SecurityInputValidationTest.php` | Input validation |
-| `StoresApiTest.php` | Store management |
-| `TimezoneSerializationTest.php` | Timezone handling |
-| `WebhookServiceTest.php` | Webhook service |
-
----
-
-## Middleware Configuration
-
-Configured in `bootstrap/app.php`:
-- `store.context` → `App\Http\Middleware\SetStoreContext`
-
----
-
-## Traits & Concerns
-
-### Auditable (`App\Traits\Auditable`)
-Provides automatic audit logging for model changes.
-
-### HasStoreContext (`App\Traits\HasStoreContext`)
-Provides store context awareness for multi-tenant operations.
-
-### SerializesDatesInAppTimezone (`App\Models\Concerns`)
-Ensures dates are serialized in the application's configured timezone.
-
----
-
-## Factories Available
-
-All models have corresponding factories in `database/factories/`:
-- CategoryFactory, CustomerFactory, InventoryAdjustmentFactory
-- LedgerEntryFactory, OrderFactory, OrderItemFactory
-- PaymentFactory, ProductFactory, ProductBulkPriceFactory
-- StoreFactory, StoreProductFactory, UserFactory, VendorProfileFactory
+### 2026-02-03: POS Product Security Fix
+- Created `GET /products/my` endpoint (auth required, auto-filters by user)
+- Disabled public product endpoints temporarily
+- Files: `ProductController.php`, `routes/api.php`, `ProductsApiTest.php`

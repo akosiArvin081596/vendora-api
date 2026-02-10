@@ -9,6 +9,7 @@ use App\Http\Resources\InventorySummaryResource;
 use App\Models\InventoryAdjustment;
 use App\Models\LedgerEntry;
 use App\Models\Product;
+use App\Services\FifoCostService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -18,6 +19,8 @@ use OpenApi\Attributes as OA;
 
 class InventoryController extends Controller
 {
+    public function __construct(public FifoCostService $fifoCostService) {}
+
     #[OA\Get(
         path: '/api/inventory',
         tags: ['Inventory'],
@@ -223,18 +226,75 @@ class InventoryController extends Controller
             ]);
         }
 
-        $adjustment = DB::transaction(function () use ($request, $product, $type, $quantity, $stockBefore, $stockAfter, $data) {
-            $product->update(['stock' => $stockAfter]);
+        $unitCost = isset($data['unit_cost']) ? (int) round(((float) $data['unit_cost']) * 100) : null;
+        $costLayerId = $data['cost_layer_id'] ?? null;
+
+        $adjustment = DB::transaction(function () use ($request, $product, $type, $quantity, $stockBefore, $stockAfter, $data, $unitCost, $costLayerId) {
+            $userId = $request->user()->id;
 
             $adjustment = InventoryAdjustment::query()->create([
-                'user_id' => $request->user()->id,
+                'user_id' => $userId,
                 'product_id' => $product->id,
                 'type' => $type,
                 'quantity' => $quantity,
                 'stock_before' => $stockBefore,
                 'stock_after' => $stockAfter,
+                'unit_cost' => $unitCost,
                 'note' => $data['note'] ?? null,
             ]);
+
+            $ledgerAmount = 0;
+
+            if ($type === 'add') {
+                $layerCost = $unitCost ?? $product->cost ?? $product->price;
+                $this->fifoCostService->createLayer([
+                    'product_id' => $product->id,
+                    'user_id' => $userId,
+                    'quantity' => $quantity,
+                    'unit_cost' => $layerCost,
+                    'inventory_adjustment_id' => $adjustment->id,
+                    'reference' => 'ADJ-'.$adjustment->id,
+                ]);
+                $ledgerAmount = $layerCost * $quantity;
+
+                $weightedAvg = $this->fifoCostService->getWeightedAverageCost($product->id);
+                $product->update([
+                    'stock' => $stockAfter,
+                    'cost' => $weightedAvg ?? $product->cost,
+                ]);
+            } elseif ($type === 'remove') {
+                if ($costLayerId) {
+                    $result = $this->fifoCostService->consumeSpecificLayer([
+                        'cost_layer_id' => $costLayerId,
+                        'quantity' => $quantity,
+                        'inventory_adjustment_id' => $adjustment->id,
+                    ]);
+                } else {
+                    $this->fifoCostService->ensureLayersExist($product, $userId);
+                    $result = $this->fifoCostService->consumeLayers([
+                        'product_id' => $product->id,
+                        'quantity' => $quantity,
+                        'inventory_adjustment_id' => $adjustment->id,
+                    ]);
+                }
+                $ledgerAmount = $result['total_cost'];
+
+                $product->update(['stock' => $stockAfter]);
+            } else {
+                // type === 'set'
+                $this->fifoCostService->handleSetAdjustment(
+                    $product, $userId, $stockBefore, $stockAfter, $unitCost, $adjustment->id,
+                );
+
+                $weightedAvg = $this->fifoCostService->getWeightedAverageCost($product->id);
+                $product->update([
+                    'stock' => $stockAfter,
+                    'cost' => $weightedAvg ?? $product->cost,
+                ]);
+
+                $costPerUnit = $unitCost ?? $weightedAvg ?? $product->cost ?? $product->price;
+                $ledgerAmount = $costPerUnit * abs($stockAfter - $stockBefore);
+            }
 
             // Create ledger entry for the stock adjustment
             $ledgerType = match ($type) {
@@ -249,13 +309,18 @@ class InventoryController extends Controller
                 'set' => $stockAfter - $stockBefore,
             };
 
+            $costPerUnit = $this->fifoCostService->getWeightedAverageCost($product->id) ?? $product->cost ?? $product->price;
+            $balanceAmount = $costPerUnit * $stockAfter;
+
             LedgerEntry::query()->create([
-                'user_id' => $request->user()->id,
+                'user_id' => $userId,
                 'product_id' => $product->id,
                 'type' => $ledgerType,
                 'category' => 'inventory',
                 'quantity' => $ledgerQty,
+                'amount' => $ledgerAmount,
                 'balance_qty' => $stockAfter,
+                'balance_amount' => $balanceAmount,
                 'reference' => 'ADJ-'.$adjustment->id,
                 'description' => ($data['note'] ?? 'Stock adjustment').' ('.$type.' '.$quantity.')',
             ]);

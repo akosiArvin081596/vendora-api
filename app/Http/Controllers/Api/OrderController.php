@@ -13,6 +13,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\StoreProduct;
+use App\Services\FifoCostService;
 use App\Traits\HasStoreContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -25,6 +26,8 @@ use OpenApi\Attributes as OA;
 class OrderController extends Controller
 {
     use HasStoreContext;
+
+    public function __construct(public FifoCostService $fifoCostService) {}
 
     #[OA\Get(
         path: '/api/orders',
@@ -235,6 +238,11 @@ class OrderController extends Controller
 
             $productIds = collect($items)->pluck('product_id')->unique()->all();
 
+            $lineTotal = 0;
+            $itemsCount = 0;
+            $totalCogs = 0;
+            $stockOutData = [];
+
             // If store context exists, use store-specific inventory
             if ($store) {
                 $storeProducts = StoreProduct::query()
@@ -244,9 +252,6 @@ class OrderController extends Controller
                     ->lockForUpdate()
                     ->get()
                     ->keyBy('product_id');
-
-                $lineTotal = 0;
-                $itemsCount = 0;
 
                 foreach ($items as $item) {
                     $storeProduct = $storeProducts->get($item['product_id']);
@@ -264,20 +269,40 @@ class OrderController extends Controller
                     }
 
                     $unitPrice = $storeProduct->effective_price;
-                    $lineTotal += $quantity * $unitPrice;
-                    $itemsCount += $quantity;
 
-                    OrderItem::query()->create([
+                    $orderItem = OrderItem::query()->create([
                         'order_id' => $order->id,
                         'product_id' => $storeProduct->product_id,
                         'quantity' => $quantity,
                         'unit_price' => $unitPrice,
+                        'unit_cost' => 0,
                         'line_total' => $quantity * $unitPrice,
                     ]);
+
+                    // FIFO consumption
+                    $this->fifoCostService->ensureLayersExist($storeProduct->product, $user->id);
+                    $fifoResult = $this->fifoCostService->consumeLayers([
+                        'product_id' => $storeProduct->product_id,
+                        'quantity' => $quantity,
+                        'order_item_id' => $orderItem->id,
+                    ]);
+
+                    $orderItem->update(['unit_cost' => $fifoResult['weighted_average_cost']]);
+
+                    $lineTotal += $quantity * $unitPrice;
+                    $totalCogs += $fifoResult['total_cost'];
+                    $itemsCount += $quantity;
 
                     $storeProduct->update([
                         'stock' => $storeProduct->stock - $quantity,
                     ]);
+
+                    $stockOutData[] = [
+                        'product_id' => $storeProduct->product_id,
+                        'quantity' => $quantity,
+                        'unit_cost' => $fifoResult['weighted_average_cost'],
+                        'remaining_stock' => $storeProduct->stock - $quantity,
+                    ];
                 }
             } else {
                 // Legacy behavior: use product stock directly
@@ -287,9 +312,6 @@ class OrderController extends Controller
                     ->lockForUpdate()
                     ->get()
                     ->keyBy('id');
-
-                $lineTotal = 0;
-                $itemsCount = 0;
 
                 foreach ($items as $item) {
                     $product = $products->get($item['product_id']);
@@ -307,20 +329,40 @@ class OrderController extends Controller
                     }
 
                     $unitPrice = $product->price;
-                    $lineTotal += $quantity * $unitPrice;
-                    $itemsCount += $quantity;
 
-                    OrderItem::query()->create([
+                    $orderItem = OrderItem::query()->create([
                         'order_id' => $order->id,
                         'product_id' => $product->id,
                         'quantity' => $quantity,
                         'unit_price' => $unitPrice,
+                        'unit_cost' => 0,
                         'line_total' => $quantity * $unitPrice,
                     ]);
+
+                    // FIFO consumption
+                    $this->fifoCostService->ensureLayersExist($product, $user->id);
+                    $fifoResult = $this->fifoCostService->consumeLayers([
+                        'product_id' => $product->id,
+                        'quantity' => $quantity,
+                        'order_item_id' => $orderItem->id,
+                    ]);
+
+                    $orderItem->update(['unit_cost' => $fifoResult['weighted_average_cost']]);
+
+                    $lineTotal += $quantity * $unitPrice;
+                    $totalCogs += $fifoResult['total_cost'];
+                    $itemsCount += $quantity;
 
                     $product->update([
                         'stock' => $product->stock - $quantity,
                     ]);
+
+                    $stockOutData[] = [
+                        'product_id' => $product->id,
+                        'quantity' => $quantity,
+                        'unit_cost' => $fifoResult['weighted_average_cost'],
+                        'remaining_stock' => $product->stock - $quantity,
+                    ];
                 }
             }
 
@@ -336,28 +378,48 @@ class OrderController extends Controller
                 ]);
             }
 
-            // Create ledger entries for the sale
+            // Create ledger entry for the sale (revenue)
             LedgerEntry::query()->create([
                 'user_id' => $user->id,
                 'store_id' => $store?->id,
                 'order_id' => $order->id,
                 'type' => 'sale',
                 'category' => 'financial',
+                'quantity' => $itemsCount,
                 'amount' => $lineTotal,
+                'balance_amount' => $lineTotal,
                 'reference' => $orderNumber,
                 'description' => 'Sale '.$orderNumber,
             ]);
 
-            // Create stock_out entries for each item
-            foreach ($items as $item) {
+            // Create COGS expense ledger entry
+            if ($totalCogs > 0) {
                 LedgerEntry::query()->create([
                     'user_id' => $user->id,
                     'store_id' => $store?->id,
-                    'product_id' => $item['product_id'],
+                    'order_id' => $order->id,
+                    'type' => 'expense',
+                    'category' => 'financial',
+                    'amount' => -$totalCogs,
+                    'reference' => $orderNumber,
+                    'description' => 'COGS '.$orderNumber,
+                ]);
+            }
+
+            // Create stock_out entries for each item
+            foreach ($stockOutData as $stockItem) {
+                $itemAmount = $stockItem['unit_cost'] * $stockItem['quantity'];
+
+                LedgerEntry::query()->create([
+                    'user_id' => $user->id,
+                    'store_id' => $store?->id,
+                    'product_id' => $stockItem['product_id'],
                     'order_id' => $order->id,
                     'type' => 'stock_out',
                     'category' => 'inventory',
-                    'quantity' => -(int) $item['quantity'],
+                    'quantity' => -$stockItem['quantity'],
+                    'amount' => $itemAmount,
+                    'balance_qty' => $stockItem['remaining_stock'],
                     'reference' => $orderNumber,
                     'description' => 'Sold via '.$orderNumber,
                 ]);

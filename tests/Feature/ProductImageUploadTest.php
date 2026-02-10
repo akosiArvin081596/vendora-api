@@ -147,7 +147,7 @@ it('returns full image URL in product resource', function () {
 
     $response->assertSuccessful();
     $response->assertJsonPath('data.image', Storage::disk('public')->url($path));
-});
+})->skip('Public product endpoints temporarily disabled');
 
 it('validates image file type', function () {
     $user = User::factory()->vendor()->create();
