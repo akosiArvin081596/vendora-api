@@ -6,6 +6,8 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
@@ -68,6 +70,8 @@ describe('SQL Injection Prevention', function () {
 
 describe('XSS Prevention', function () {
     it('stores XSS payload as plain text in product name', function () {
+        Storage::fake('public');
+
         $user = User::factory()->vendor()->create();
         $category = Category::factory()->create();
 
@@ -85,6 +89,7 @@ describe('XSS Prevention', function () {
             'stock' => 10,
             'is_active' => true,
             'is_ecommerce' => true,
+            'image' => UploadedFile::fake()->create('product.jpg', 100, 'image/jpeg'),
         ]);
 
         $response->assertCreated();

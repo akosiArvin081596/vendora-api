@@ -8,6 +8,8 @@ use App\Models\Product;
 use App\Models\User;
 use App\Services\FifoCostService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
@@ -440,6 +442,8 @@ it('creates consumption audit trail with correct data', function () {
 });
 
 it('creates initial cost layer when product is created with stock', function () {
+    Storage::fake('public');
+
     $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
 
@@ -456,6 +460,7 @@ it('creates initial cost layer when product is created with stock', function () 
         'stock' => 20,
         'is_active' => true,
         'is_ecommerce' => false,
+        'image' => UploadedFile::fake()->create('product.jpg', 100, 'image/jpeg'),
     ]);
 
     $response->assertCreated();
@@ -473,6 +478,8 @@ it('creates initial cost layer when product is created with stock', function () 
 });
 
 it('does not create cost layer when product created with zero stock', function () {
+    Storage::fake('public');
+
     $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
 
@@ -488,6 +495,7 @@ it('does not create cost layer when product created with zero stock', function (
         'stock' => 0,
         'is_active' => true,
         'is_ecommerce' => false,
+        'image' => UploadedFile::fake()->create('product.jpg', 100, 'image/jpeg'),
     ])->assertCreated();
 
     expect(InventoryCostLayer::count())->toBe(0);

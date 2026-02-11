@@ -4,6 +4,8 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
@@ -102,6 +104,8 @@ it('filters products by in stock status', function () {
 })->skip('Public product endpoints temporarily disabled');
 
 it('creates a product', function () {
+    Storage::fake('public');
+
     $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
 
@@ -119,6 +123,7 @@ it('creates a product', function () {
         'max_stock' => 100,
         'is_active' => true,
         'is_ecommerce' => true,
+        'image' => UploadedFile::fake()->create('product.jpg', 100, 'image/jpeg'),
     ]);
 
     $response->assertCreated();
@@ -136,6 +141,8 @@ it('creates a product', function () {
 });
 
 it('allows admins to create a product', function () {
+    Storage::fake('public');
+
     $user = User::factory()->admin()->create();
     $category = Category::factory()->create();
 
@@ -151,6 +158,7 @@ it('allows admins to create a product', function () {
         'stock' => 25,
         'is_active' => true,
         'is_ecommerce' => true,
+        'image' => UploadedFile::fake()->create('product.jpg', 100, 'image/jpeg'),
     ]);
 
     $response->assertCreated();
@@ -206,12 +214,15 @@ it('validates required fields when creating a product', function () {
         'currency',
         'unit',
         'stock',
+        'image',
         'is_active',
         'is_ecommerce',
     ]);
 });
 
 it('prevents duplicate SKU for the same user', function () {
+    Storage::fake('public');
+
     $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
 
@@ -229,6 +240,7 @@ it('prevents duplicate SKU for the same user', function () {
         'stock' => 10,
         'is_active' => true,
         'is_ecommerce' => true,
+        'image' => UploadedFile::fake()->create('product.jpg', 100, 'image/jpeg'),
     ]);
 
     $response->assertUnprocessable();

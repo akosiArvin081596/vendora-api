@@ -5,6 +5,8 @@ use App\Models\LedgerEntry;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
@@ -234,6 +236,8 @@ it('creates ledger entry when inventory is adjusted', function () {
 });
 
 it('creates ledger entry when a new product is created with initial stock', function () {
+    Storage::fake('public');
+
     $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
 
@@ -249,6 +253,7 @@ it('creates ledger entry when a new product is created with initial stock', func
         'stock' => 50,
         'is_active' => true,
         'is_ecommerce' => false,
+        'image' => UploadedFile::fake()->create('product.jpg', 100, 'image/jpeg'),
     ]);
 
     $response->assertCreated();
@@ -267,6 +272,8 @@ it('creates ledger entry when a new product is created with initial stock', func
 });
 
 it('does not create ledger entry when product is created with zero stock', function () {
+    Storage::fake('public');
+
     $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
 
@@ -282,6 +289,7 @@ it('does not create ledger entry when product is created with zero stock', funct
         'stock' => 0,
         'is_active' => true,
         'is_ecommerce' => false,
+        'image' => UploadedFile::fake()->create('product.jpg', 100, 'image/jpeg'),
     ]);
 
     $product = Product::query()->where('sku', 'ZERO-001')->first();

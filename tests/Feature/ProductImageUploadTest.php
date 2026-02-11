@@ -48,7 +48,7 @@ it('creates a product with an image', function () {
     Storage::disk('public')->assertExists($product->image);
 });
 
-it('creates a product without an image', function () {
+it('rejects a product without an image', function () {
     $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
 
@@ -66,11 +66,8 @@ it('creates a product without an image', function () {
         'is_ecommerce' => true,
     ]);
 
-    $response->assertCreated();
-    $response->assertJsonPath('data.image', null);
-
-    $product = Product::where('sku', 'NOIMG-001')->first();
-    expect($product->image)->toBeNull();
+    $response->assertUnprocessable();
+    $response->assertJsonValidationErrors(['image']);
 });
 
 it('updates a product with a new image', function () {

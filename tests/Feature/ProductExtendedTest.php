@@ -4,6 +4,8 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
@@ -302,6 +304,8 @@ it('returns new product fields in response', function () {
 })->skip('Public product endpoints temporarily disabled');
 
 it('creates product with new fields', function () {
+    Storage::fake('public');
+
     $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
 
@@ -322,6 +326,7 @@ it('creates product with new fields', function () {
         'max_stock' => 50,
         'is_active' => true,
         'is_ecommerce' => false,
+        'image' => UploadedFile::fake()->create('product.jpg', 100, 'image/jpeg'),
     ]);
 
     $response->assertCreated();
