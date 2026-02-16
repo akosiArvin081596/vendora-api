@@ -256,6 +256,8 @@ class ProductController extends Controller
     )]
     public function store(StoreProductRequest $request): JsonResponse
     {
+        try {
+
         $data = $request->validated();
         $data['user_id'] = $request->user()->id;
         $data['currency'] = $data['currency'] ?? 'PHP';
@@ -322,6 +324,21 @@ class ProductController extends Controller
         return (new ProductResource($product->load(['category', 'bulkPrices'])))
             ->response()
             ->setStatusCode(201);
+
+        } catch (\Throwable $e) {
+            \Log::error('Product store failed', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile().':'.$e->getLine(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'message' => 'Product creation failed: '.$e->getMessage(),
+                    'code' => 'PRODUCT_CREATE_ERROR',
+                ],
+            ], 500);
+        }
     }
 
     // TODO: Re-enable when e-commerce frontend is ready

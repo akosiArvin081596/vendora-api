@@ -24,6 +24,17 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->renderable(function (\Illuminate\Validation\ValidationException $e, Request $request) {
+            if ($request->is('api/products') && $request->isMethod('POST')) {
+                \Log::warning('Product creation validation failed', [
+                    'errors' => $e->errors(),
+                    'input_keys' => array_keys($request->all()),
+                ]);
+            }
+
+            return null; // Let Laravel handle it normally
+        });
+
         $exceptions->renderable(function (InsufficientCostLayersException $e, Request $request) {
             if ($request->expectsJson()) {
                 return response()->json([

@@ -57,7 +57,8 @@
       "Bash(.gradlew.bat assembleRelease:*)",
       "Bash(c:\\\\vendora\\\\android\\\\gradlew.bat assembleRelease:*)",
       "Bash(cmd /c \"cd c:\\\\vendora\\\\android && gradlew.bat assembleRelease\")",
-      "Bash(cmd /c \"cd /d c:\\\\vendora\\\\android && gradlew.bat assembleRelease\")"
+      "Bash(cmd /c \"cd /d c:\\\\vendora\\\\android && gradlew.bat assembleRelease\")",
+      "WebFetch(domain:vendora-api.abedubas.dev)"
     ]
   },
   "enableAllProjectMcpServers": true,
