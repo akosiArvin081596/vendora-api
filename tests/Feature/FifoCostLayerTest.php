@@ -662,7 +662,8 @@ it('fails when targeted cost layer has insufficient remaining', function () {
         'note' => 'Too many',
     ]);
 
-    $response->assertStatus(500);
+    $response->assertUnprocessable();
+    $response->assertJsonValidationErrors(['quantity']);
 
     // Layer should be unchanged
     expect($layer->fresh()->remaining_quantity)->toBe(10);

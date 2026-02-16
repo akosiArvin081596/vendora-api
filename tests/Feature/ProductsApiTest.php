@@ -211,13 +211,12 @@ it('validates required fields when creating a product', function () {
         'sku',
         'category_id',
         'price',
-        'currency',
-        'unit',
         'stock',
         'image',
         'is_active',
         'is_ecommerce',
     ]);
+    $response->assertJsonMissingValidationErrors(['currency', 'unit']);
 });
 
 it('prevents duplicate SKU for the same user', function () {

@@ -259,6 +259,7 @@ class ProductController extends Controller
         $data = $request->validated();
         $data['user_id'] = $request->user()->id;
         $data['currency'] = $data['currency'] ?? 'PHP';
+        $data['unit'] = $data['unit'] ?? 'pcs';
 
         if (array_key_exists('price', $data)) {
             $data['price'] = $this->normalizeMoney($request->input('price'));

@@ -210,7 +210,7 @@ describe('OrderObserver webhooks', function () {
         ]);
 
         $user = User::factory()->create();
-        $order = Order::factory()->for($user)->create();
+        $order = Order::factory()->for($user)->create(['status' => 'pending']);
 
         Http::fake([
             'http://localhost:3001' => Http::response([], 200),
