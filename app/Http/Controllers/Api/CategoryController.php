@@ -54,6 +54,10 @@ class CategoryController extends Controller
     {
         $query = Category::query();
 
+        if ($request->filled('updated_since')) {
+            $query->where('updated_at', '>=', $request->input('updated_since'));
+        }
+
         if ($request->filled('is_active')) {
             $isActive = filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
             if ($isActive !== null) {

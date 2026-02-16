@@ -75,6 +75,10 @@ class InventoryController extends Controller
             ->with(['category', 'bulkPrices'])
             ->where('user_id', $user->id);
 
+        if ($request->filled('updated_since')) {
+            $query->where('updated_at', '>=', $request->input('updated_since'));
+        }
+
         $search = $request->string('search')->trim();
         if ($search->isNotEmpty()) {
             $term = '%'.$search->value().'%';

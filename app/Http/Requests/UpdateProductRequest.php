@@ -54,7 +54,7 @@ class UpdateProductRequest extends FormRequest
             'stock' => ['sometimes', 'integer', 'min:0'],
             'min_stock' => ['sometimes', 'integer', 'min:0'],
             'max_stock' => ['sometimes', 'integer', 'min:0'],
-            'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:5120'],
+            'image' => ['sometimes', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:5120'],
             'is_active' => ['nullable', 'boolean'],
             'is_ecommerce' => ['nullable', 'boolean'],
             'bulk_pricing' => ['nullable', 'array'],
@@ -109,6 +109,10 @@ class UpdateProductRequest extends FormRequest
         $validator->after(function (Validator $validator) {
             if ($this->filled('category') && ! $this->filled('category_id')) {
                 $validator->errors()->add('category', 'Category must be valid.');
+            }
+
+            if ($this->exists('image') && $this->input('image') === null && ! $this->hasFile('image')) {
+                $validator->errors()->add('image', 'Product image cannot be removed.');
             }
         });
     }

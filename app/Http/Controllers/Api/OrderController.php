@@ -83,6 +83,10 @@ class OrderController extends Controller
             ->with(['customer', 'store'])
             ->where('user_id', $request->user()->id);
 
+        if ($request->filled('updated_since')) {
+            $query->where('updated_at', '>=', $request->input('updated_since'));
+        }
+
         // Filter by store if store context is provided
         $store = $this->currentStore($request);
         if ($store) {

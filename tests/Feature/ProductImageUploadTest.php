@@ -146,7 +146,7 @@ it('returns full image URL in product resource', function () {
     $response->assertJsonPath('data.image', Storage::disk('public')->url($path));
 })->skip('Public product endpoints temporarily disabled');
 
-it('clears existing image when image is set to null', function () {
+it('rejects removing an existing image by setting it to null', function () {
     $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
 
@@ -165,12 +165,13 @@ it('clears existing image when image is set to null', function () {
         'image' => null,
     ]);
 
-    $response->assertSuccessful();
+    $response->assertUnprocessable();
+    $response->assertJsonValidationErrors(['image']);
 
     $product->refresh();
-    expect($product->image)->toBeNull();
+    expect($product->image)->toBe($path);
 
-    Storage::disk('public')->assertMissing($path);
+    Storage::disk('public')->assertExists($path);
 });
 
 it('keeps existing image when image field is not sent', function () {

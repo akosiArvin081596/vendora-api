@@ -432,6 +432,49 @@ it('adds stock without unit cost and uses existing product cost for ledger', fun
     ]);
 });
 
+it('returns correct stock after a failed removal followed by a successful one', function () {
+    $user = User::factory()->vendor()->create();
+    $category = Category::factory()->create();
+    $product = Product::factory()->for($user)->for($category)->create([
+        'stock' => 12,
+        'cost' => 5000,
+    ]);
+
+    Sanctum::actingAs($user);
+
+    // Step 1: Try to remove more than available — should fail
+    $response = $this->postJson('/api/inventory/adjustments', [
+        'product_id' => $product->id,
+        'type' => 'remove',
+        'quantity' => 13,
+    ]);
+
+    $response->assertUnprocessable();
+    expect($product->fresh()->stock)->toBe(12);
+
+    // Step 2: Remove a valid quantity — should succeed
+    $response = $this->postJson('/api/inventory/adjustments', [
+        'product_id' => $product->id,
+        'type' => 'remove',
+        'quantity' => 5,
+    ]);
+
+    $response->assertCreated();
+    $response->assertJsonPath('inventory.stock', 7);
+    expect($product->fresh()->stock)->toBe(7);
+
+    // Step 3: Add stock — should compute from the correct base (7)
+    $response = $this->postJson('/api/inventory/adjustments', [
+        'product_id' => $product->id,
+        'type' => 'add',
+        'quantity' => 3,
+    ]);
+
+    $response->assertCreated();
+    $response->assertJsonPath('inventory.stock', 10);
+    expect($product->fresh()->stock)->toBe(10);
+});
+
 it('does not update product cost when removing stock with unit cost', function () {
     $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();

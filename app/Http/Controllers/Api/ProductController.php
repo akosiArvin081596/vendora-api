@@ -454,11 +454,6 @@ class ProductController extends Controller
             }
             $path = $request->file('image')->store('products', 'public');
             $data['image'] = $path;
-        } elseif ($request->exists('image') && $request->input('image') === null) {
-            if ($product->image) {
-                Storage::disk('public')->delete($product->image);
-            }
-            $data['image'] = null;
         } else {
             unset($data['image']);
         }
@@ -781,6 +776,14 @@ class ProductController extends Controller
         $query = Product::query()
             ->with(['category', 'bulkPrices'])
             ->where('user_id', $request->user()->id);
+
+        if ($request->filled('updated_since')) {
+            $query->where('updated_at', '>=', $request->input('updated_since'));
+        }
+
+        if (filter_var($request->input('include_deleted'), FILTER_VALIDATE_BOOLEAN)) {
+            $query->withTrashed();
+        }
 
         $search = $request->string('search')->trim();
         if ($search->isNotEmpty()) {
