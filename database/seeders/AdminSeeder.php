@@ -13,15 +13,35 @@ class AdminSeeder extends Seeder
      */
     public function run(): void
     {
-        User::updateOrCreate(
-            ['email' => 'admin@vendora.com'],
+        $users = [
             [
-                'name' => 'Admin',
                 'email' => 'admin@vendora.com',
-                'password' => Hash::make('password'),
+                'name' => 'Admin',
                 'user_type' => 'admin',
-                'email_verified_at' => now(),
-            ]
-        );
+            ],
+            [
+                'email' => 'augustinmaputol@gmail.com',
+                'name' => 'Augustin Maputol',
+                'user_type' => 'vendor',
+            ],
+            [
+                'email' => 'jayarvacs@gmail.com',
+                'name' => 'Jayar Vacs',
+                'user_type' => 'vendor',
+            ],
+        ];
+
+        foreach ($users as $user) {
+            User::updateOrCreate(
+                ['email' => $user['email']],
+                [
+                    'name' => $user['name'],
+                    'email' => $user['email'],
+                    'password' => Hash::make('password'),
+                    'user_type' => $user['user_type'],
+                    'email_verified_at' => now(),
+                ]
+            );
+        }
     }
 }
