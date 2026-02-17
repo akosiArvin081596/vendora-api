@@ -72,6 +72,10 @@ class LedgerController extends Controller
             $query->whereDate('created_at', '<=', $request->string('date_to')->value());
         }
 
+        if ($request->filled('updated_since')) {
+            $query->where('updated_at', '>=', $request->input('updated_since'));
+        }
+
         $search = $request->string('search')->trim();
         if ($search->isNotEmpty()) {
             $term = '%'.$search->value().'%';
