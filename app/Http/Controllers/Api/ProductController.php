@@ -258,72 +258,76 @@ class ProductController extends Controller
     {
         try {
 
-        $data = $request->validated();
-        $data['user_id'] = $request->user()->id;
-        $data['currency'] = $data['currency'] ?? 'PHP';
-        $data['unit'] = $data['unit'] ?? 'pcs';
+            $data = $request->validated();
+            $data['user_id'] = $request->user()->id;
+            $data['currency'] = $data['currency'] ?? 'PHP';
+            $data['unit'] = $data['unit'] ?? 'pcs';
 
-        if (array_key_exists('price', $data)) {
-            $data['price'] = $this->normalizeMoney($request->input('price'));
-        }
+            if (array_key_exists('price', $data)) {
+                $data['price'] = $this->normalizeMoney($request->input('price'));
+            }
 
-        if (array_key_exists('cost', $data) && $data['cost'] !== null) {
-            $data['cost'] = $this->normalizeMoney($request->input('cost'));
-        }
+            if (array_key_exists('cost', $data) && $data['cost'] !== null) {
+                $data['cost'] = $this->normalizeMoney($request->input('cost'));
+            }
 
-        unset($data['category']);
+            unset($data['category']);
 
-        $bulkPricing = $data['bulk_pricing'] ?? null;
-        unset($data['bulk_pricing']);
+            $bulkPricing = $data['bulk_pricing'] ?? null;
+            unset($data['bulk_pricing']);
 
-        if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('products', 'public');
-            $data['image'] = $path;
-        } else {
-            unset($data['image']);
-        }
+            if ($request->hasFile('image')) {
+                $path = $request->file('image')->store('products', 'public');
+                $data['image'] = $path;
+            } elseif ($request->filled('image_base64')) {
+                $data['image'] = $this->saveBase64Image($data['image_base64']);
+            } else {
+                unset($data['image']);
+            }
 
-        $product = Product::query()->create($data);
+            unset($data['image_base64']);
 
-        if ($bulkPricing && is_array($bulkPricing)) {
-            foreach ($bulkPricing as $tier) {
-                $product->bulkPrices()->create([
-                    'min_qty' => $tier['min_qty'],
-                    'price' => $this->normalizeMoney($tier['price']),
+            $product = Product::query()->create($data);
+
+            if ($bulkPricing && is_array($bulkPricing)) {
+                foreach ($bulkPricing as $tier) {
+                    $product->bulkPrices()->create([
+                        'min_qty' => $tier['min_qty'],
+                        'price' => $this->normalizeMoney($tier['price']),
+                    ]);
+                }
+            }
+
+            // Create ledger entry and cost layer for initial stock
+            if ($product->stock > 0) {
+                $unitCost = $product->cost ?? $product->price;
+                $totalAmount = $unitCost * $product->stock;
+
+                $this->fifoCostService->createLayer([
+                    'product_id' => $product->id,
+                    'user_id' => $request->user()->id,
+                    'quantity' => $product->stock,
+                    'unit_cost' => $unitCost,
+                    'reference' => 'INIT-'.$product->id,
+                ]);
+
+                LedgerEntry::query()->create([
+                    'user_id' => $request->user()->id,
+                    'product_id' => $product->id,
+                    'type' => 'stock_in',
+                    'category' => 'inventory',
+                    'quantity' => $product->stock,
+                    'amount' => $totalAmount,
+                    'balance_qty' => $product->stock,
+                    'balance_amount' => $totalAmount,
+                    'reference' => 'INIT-'.$product->id,
+                    'description' => 'Initial stock for new product: '.$product->name,
                 ]);
             }
-        }
 
-        // Create ledger entry and cost layer for initial stock
-        if ($product->stock > 0) {
-            $unitCost = $product->cost ?? $product->price;
-            $totalAmount = $unitCost * $product->stock;
-
-            $this->fifoCostService->createLayer([
-                'product_id' => $product->id,
-                'user_id' => $request->user()->id,
-                'quantity' => $product->stock,
-                'unit_cost' => $unitCost,
-                'reference' => 'INIT-'.$product->id,
-            ]);
-
-            LedgerEntry::query()->create([
-                'user_id' => $request->user()->id,
-                'product_id' => $product->id,
-                'type' => 'stock_in',
-                'category' => 'inventory',
-                'quantity' => $product->stock,
-                'amount' => $totalAmount,
-                'balance_qty' => $product->stock,
-                'balance_amount' => $totalAmount,
-                'reference' => 'INIT-'.$product->id,
-                'description' => 'Initial stock for new product: '.$product->name,
-            ]);
-        }
-
-        return (new ProductResource($product->load(['category', 'bulkPrices'])))
-            ->response()
-            ->setStatusCode(201);
+            return (new ProductResource($product->load(['category', 'bulkPrices'])))
+                ->response()
+                ->setStatusCode(201);
 
         } catch (\Throwable $e) {
             \Log::error('Product store failed', [
@@ -472,9 +476,16 @@ class ProductController extends Controller
             }
             $path = $request->file('image')->store('products', 'public');
             $data['image'] = $path;
+        } elseif ($request->filled('image_base64')) {
+            if ($product->image) {
+                Storage::disk('public')->delete($product->image);
+            }
+            $data['image'] = $this->saveBase64Image($data['image_base64']);
         } else {
             unset($data['image']);
         }
+
+        unset($data['image_base64']);
 
         $product->update($data);
 
@@ -522,6 +533,36 @@ class ProductController extends Controller
         return Product::query()
             ->where('user_id', $request->user()->id)
             ->findOrFail($productId);
+    }
+
+    protected function saveBase64Image(string $base64): string
+    {
+        // Strip data URI prefix if present (e.g., "data:image/jpeg;base64,")
+        if (str_contains($base64, ',')) {
+            $base64 = substr($base64, strpos($base64, ',') + 1);
+        }
+
+        $imageData = base64_decode($base64, true);
+
+        if ($imageData === false) {
+            abort(422, 'Invalid base64 image data.');
+        }
+
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mime = $finfo->buffer($imageData);
+        $allowedMimes = [
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/gif' => 'gif',
+            'image/webp' => 'webp',
+        ];
+
+        $ext = $allowedMimes[$mime] ?? 'jpg';
+        $filename = 'products/'.uniqid('prod_', true).'.'.$ext;
+
+        Storage::disk('public')->put($filename, $imageData);
+
+        return $filename;
     }
 
     protected function normalizeMoney(mixed $value): ?int

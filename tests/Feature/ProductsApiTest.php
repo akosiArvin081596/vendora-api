@@ -422,6 +422,46 @@ it('filters my products by category', function () {
     $response->assertJsonFragment(['id' => $product1->id]);
 });
 
+it('creates a product with base64 image', function () {
+    Storage::fake('public');
+
+    $user = User::factory()->vendor()->create();
+    $category = Category::factory()->create();
+
+    Sanctum::actingAs($user);
+
+    // Minimal valid 1x1 JPEG as base64
+    $base64 = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAFRABAQAAAAAAAAAAAAAAAAAAABD/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8AQAB//9k=';
+
+    $response = $this->postJson('/api/products', [
+        'name' => 'Base64 Product',
+        'sku' => 'B64-001',
+        'category_id' => $category->id,
+        'price' => 500,
+        'currency' => 'PHP',
+        'unit' => 'pc',
+        'stock' => 10,
+        'is_active' => true,
+        'is_ecommerce' => false,
+        'image_base64' => $base64,
+    ]);
+
+    $response->assertCreated();
+    $response->assertJsonFragment([
+        'name' => 'Base64 Product',
+        'sku' => 'B64-001',
+    ]);
+
+    $this->assertDatabaseHas('products', [
+        'user_id' => $user->id,
+        'name' => 'Base64 Product',
+    ]);
+
+    // Verify image was saved to storage
+    $product = Product::query()->where('sku', 'B64-001')->first();
+    Storage::disk('public')->assertExists($product->image);
+});
+
 it('includes inactive products on /products/my endpoint', function () {
     $user = User::factory()->vendor()->create();
     $category = Category::factory()->create();
