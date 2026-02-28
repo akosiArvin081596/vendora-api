@@ -14,6 +14,8 @@ class OrderResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $vatableSales = $this->total > 0 ? (int) round($this->total / 1.12) : 0;
+
         return [
             'id' => $this->id,
             'order_number' => $this->order_number,
@@ -22,6 +24,8 @@ class OrderResource extends JsonResource
             'ordered_at' => $this->ordered_at?->toDateString(),
             'items_count' => $this->items_count,
             'total' => $this->total,
+            'vatable_sales' => $vatableSales,
+            'vat_amount' => $this->total - $vatableSales,
             'currency' => $this->currency,
             'status' => $this->status,
             'items' => OrderItemResource::collection($this->whenLoaded('items')),

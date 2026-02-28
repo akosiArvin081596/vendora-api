@@ -373,6 +373,31 @@ it('falls back to price when product has no cost', function () {
     ]);
 });
 
+it('returns vatable sales and vat amount breakdown', function () {
+    $user = User::factory()->create();
+    $category = Category::factory()->create();
+    $product = Product::factory()->for($user)->for($category)->create([
+        'price' => 1120,
+        'cost' => 600,
+        'stock' => 50,
+    ]);
+
+    Sanctum::actingAs($user);
+
+    $response = $this->postJson('/api/orders', [
+        'ordered_at' => '2026-01-10',
+        'status' => 'pending',
+        'items' => [
+            ['product_id' => $product->id, 'quantity' => 1],
+        ],
+    ]);
+
+    $response->assertCreated();
+    $response->assertJsonPath('data.total', 1120);
+    $response->assertJsonPath('data.vatable_sales', 1000);
+    $response->assertJsonPath('data.vat_amount', 120);
+});
+
 it('generates sequential order numbers', function () {
     $user = User::factory()->create();
     $category = Category::factory()->create();

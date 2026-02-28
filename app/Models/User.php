@@ -140,4 +140,14 @@ class User extends Authenticatable
     {
         return $this->ownedStores->merge($this->assignedStores);
     }
+
+    public function foodMenuItems(): HasMany
+    {
+        return $this->hasMany(FoodMenuItem::class);
+    }
+
+    public function foodMenuReservations(): HasMany
+    {
+        return $this->hasMany(FoodMenuReservation::class);
+    }
 }

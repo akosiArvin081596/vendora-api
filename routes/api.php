@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\FoodMenuItemController;
+use App\Http\Controllers\Api\FoodMenuReservationController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\LedgerController;
 use App\Http\Controllers\Api\OrderController;
@@ -41,6 +43,10 @@ Route::prefix('auth')->group(function () {
 Route::get('/products/my', [ProductController::class, 'my'])->middleware('auth:sanctum')->name('products.my');
 Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
 Route::get('/categories/{category}', [CategoryController::class, 'show'])->name('categories.show');
+
+// Public Food Menu endpoints (no auth required)
+Route::get('/food-menu/public/{user}', [FoodMenuItemController::class, 'publicMenu'])->name('food-menu.public');
+Route::post('/food-menu/public/{user}/reserve', [FoodMenuItemController::class, 'publicReserve'])->name('food-menu.public.reserve');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [UserController::class, 'show'])->name('user');
@@ -84,6 +90,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('orders', OrderController::class);
     Route::get('/payments/summary', [PaymentController::class, 'summary'])->name('payments.summary');
     Route::apiResource('payments', PaymentController::class);
+
+    // Food Menu Management
+    Route::apiResource('food-menu', FoodMenuItemController::class)->parameters(['food-menu' => 'foodMenuItem']);
+    Route::apiResource('food-menu-reservations', FoodMenuReservationController::class)->parameters(['food-menu-reservations' => 'reservation']);
 
     // Store Management
     Route::apiResource('stores', StoreController::class);
