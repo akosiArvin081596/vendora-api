@@ -114,6 +114,23 @@ class FoodMenuItemController extends Controller
         return response()->json(null, 204);
     }
 
+    public function publicVendors(): JsonResponse
+    {
+        $vendors = User::query()
+            ->whereHas('foodMenuItems', function ($q) {
+                $q->where('is_available', true)
+                    ->whereColumn('reserved_servings', '<', 'total_servings');
+            })
+            ->with('vendorProfile')
+            ->get()
+            ->map(fn (User $user) => [
+                'id' => $user->id,
+                'name' => $user->vendorProfile?->business_name ?? $user->name,
+            ]);
+
+        return response()->json(['success' => true, 'data' => $vendors]);
+    }
+
     public function publicMenu(Request $request, User $user): AnonymousResourceCollection
     {
         $query = FoodMenuItem::query()

@@ -32,19 +32,17 @@ Route::prefix('auth')->group(function () {
     });
 });
 
-// Public product/category READ endpoints (for e-commerce browsing)
-// TODO: Re-enable when e-commerce frontend is ready
-// Route::get('/products', [ProductController::class, 'index'])->name('products.index');
-// Route::get('/products/sku/{sku}', [ProductController::class, 'showBySku'])->name('products.showBySku');
-// Route::get('/products/barcode/{code}', [ProductController::class, 'showByBarcode'])->name('products.showByBarcode');
-// Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
-
-// POS endpoint - returns only authenticated user's products
+// POS endpoint - returns only authenticated user's products (must be before {product} wildcard)
 Route::get('/products/my', [ProductController::class, 'my'])->middleware('auth:sanctum')->name('products.my');
+
+// Public product/category READ endpoints (for e-commerce browsing)
+Route::get('/products', [ProductController::class, 'index'])->name('products.index');
+Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
 Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
 Route::get('/categories/{category}', [CategoryController::class, 'show'])->name('categories.show');
 
 // Public Food Menu endpoints (no auth required)
+Route::get('/food-menu/public/vendors', [FoodMenuItemController::class, 'publicVendors'])->name('food-menu.public.vendors');
 Route::get('/food-menu/public/{user}', [FoodMenuItemController::class, 'publicMenu'])->name('food-menu.public');
 Route::post('/food-menu/public/{user}/reserve', [FoodMenuItemController::class, 'publicReserve'])->name('food-menu.public.reserve');
 
