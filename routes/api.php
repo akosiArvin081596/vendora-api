@@ -97,6 +97,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('stores', StoreController::class);
     Route::get('/stores/{store}/staff', [StoreStaffController::class, 'index'])->name('stores.staff.index');
     Route::post('/stores/{store}/staff', [StoreStaffController::class, 'store'])->name('stores.staff.store');
+    Route::post('/stores/{store}/staff/create', [StoreStaffController::class, 'createAndAssign'])->name('stores.staff.create');
     Route::patch('/stores/{store}/staff/{user}', [StoreStaffController::class, 'update'])->name('stores.staff.update');
     Route::delete('/stores/{store}/staff/{user}', [StoreStaffController::class, 'destroy'])->name('stores.staff.destroy');
     Route::get('/store-roles', [StoreStaffController::class, 'roles'])->name('stores.roles');

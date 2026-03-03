@@ -95,6 +95,45 @@ enum StoreRole: string
     }
 
     /**
+     * Get the corresponding global UserType for this store role.
+     */
+    public function toUserType(): UserType
+    {
+        return match ($this) {
+            self::Owner => UserType::Vendor,
+            self::Manager => UserType::Manager,
+            self::Cashier => UserType::Cashier,
+            self::Staff => UserType::Cashier,
+        };
+    }
+
+    /**
+     * Get all valid permission strings.
+     *
+     * @return array<string>
+     */
+    public static function allPermissions(): array
+    {
+        return [
+            'products.view',
+            'products.create',
+            'products.update',
+            'orders.view',
+            'orders.create',
+            'orders.update',
+            'inventory.view',
+            'inventory.adjust',
+            'customers.view',
+            'customers.create',
+            'customers.update',
+            'payments.view',
+            'payments.create',
+            'reports.view',
+            'staff.view',
+        ];
+    }
+
+    /**
      * Get assignable roles (roles that can be assigned to staff).
      *
      * @return array<self>

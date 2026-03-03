@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\StoreRole;
+use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\CreateStoreStaffRequest;
 use App\Http\Requests\StoreStaffRequest;
 use App\Http\Requests\UpdateStoreStaffRequest;
 use App\Http\Resources\StoreStaffResource;
@@ -14,6 +16,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use OpenApi\Attributes as OA;
 
 class StoreStaffController extends Controller
@@ -126,13 +130,88 @@ class StoreStaffController extends Controller
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
+        $permissions = $request->validated('permissions');
+
         $store->staff()->attach($user->id, [
             'role' => $request->validated('role'),
-            'permissions' => $request->validated('permissions'),
+            'permissions' => is_array($permissions) ? json_encode($permissions) : null,
             'assigned_at' => now(),
         ]);
 
         $staff = $store->staff()->where('users.id', $user->id)->first();
+
+        return (new StoreStaffResource($staff))
+            ->response()
+            ->setStatusCode(Response::HTTP_CREATED);
+    }
+
+    #[OA\Post(
+        path: '/api/stores/{store}/staff/create',
+        tags: ['Store Staff'],
+        summary: 'Create a new user and assign as staff',
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'store', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['name', 'email', 'password', 'role'],
+                properties: [
+                    new OA\Property(property: 'name', type: 'string', example: 'Jane Doe'),
+                    new OA\Property(property: 'email', type: 'string', format: 'email', example: 'jane@example.com'),
+                    new OA\Property(property: 'password', type: 'string', example: 'password123'),
+                    new OA\Property(property: 'phone', type: 'string', example: '+63 912 345 6789'),
+                    new OA\Property(property: 'role', type: 'string', example: 'cashier'),
+                    new OA\Property(property: 'permissions', type: 'array', items: new OA\Items(type: 'string')),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: 'User created and assigned as staff',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'id', type: 'integer', example: 1),
+                        new OA\Property(property: 'name', type: 'string', example: 'Jane Doe'),
+                        new OA\Property(property: 'email', type: 'string', example: 'jane@example.com'),
+                        new OA\Property(property: 'role', type: 'string', example: 'cashier'),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 403, description: 'Forbidden'),
+            new OA\Response(response: 422, description: 'Validation error'),
+        ]
+    )]
+    public function createAndAssign(CreateStoreStaffRequest $request, Store $store): JsonResponse
+    {
+        $this->authorize('manageStaff', $store);
+
+        $validated = $request->validated();
+        $role = StoreRole::from($validated['role']);
+
+        $staff = DB::transaction(function () use ($store, $validated, $role) {
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
+                'phone' => $validated['phone'] ?? null,
+                'user_type' => $role->toUserType(),
+                'status' => UserStatus::Active,
+            ]);
+
+            $permissions = $validated['permissions'] ?? null;
+
+            $store->staff()->attach($user->id, [
+                'role' => $role->value,
+                'permissions' => is_array($permissions) ? json_encode($permissions) : null,
+                'assigned_at' => now(),
+            ]);
+
+            return $store->staff()->where('users.id', $user->id)->first();
+        });
 
         return (new StoreStaffResource($staff))
             ->response()
@@ -185,9 +264,11 @@ class StoreStaffController extends Controller
             ], Response::HTTP_NOT_FOUND);
         }
 
+        $permissions = $request->validated('permissions');
+
         $store->staff()->updateExistingPivot($user->id, [
             'role' => $request->validated('role'),
-            'permissions' => $request->validated('permissions'),
+            'permissions' => is_array($permissions) ? json_encode($permissions) : null,
         ]);
 
         $staff = $store->staff()->where('users.id', $user->id)->first();

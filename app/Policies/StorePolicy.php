@@ -113,6 +113,7 @@ class StorePolicy
 
     /**
      * Check if user has a specific permission at this store.
+     * Uses custom pivot permissions if set, otherwise falls back to role defaults.
      */
     protected function hasPermission(User $user, Store $store, string $permission): bool
     {
@@ -130,6 +131,15 @@ class StorePolicy
 
         if (! $role) {
             return false;
+        }
+
+        $rawPermissions = $pivot->permissions;
+        $customPermissions = is_string($rawPermissions)
+            ? json_decode($rawPermissions, true)
+            : (is_array($rawPermissions) ? $rawPermissions : null);
+
+        if (is_array($customPermissions) && count($customPermissions) > 0) {
+            return in_array($permission, $customPermissions, true);
         }
 
         return $role->hasPermission($permission);
