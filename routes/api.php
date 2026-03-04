@@ -54,6 +54,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/sales-trend', [DashboardController::class, 'salesTrend'])->name('dashboard.sales-trend');
         Route::get('/orders-by-channel', [DashboardController::class, 'ordersByChannel'])->name('dashboard.orders-by-channel');
         Route::get('/payment-methods', [DashboardController::class, 'paymentMethods'])->name('dashboard.payment-methods');
+        Route::get('/cash-vs-credit', [DashboardController::class, 'cashVsCredit'])->name('dashboard.cash-vs-credit');
         Route::get('/top-products', [DashboardController::class, 'topProducts'])->name('dashboard.top-products');
         Route::get('/inventory-health', [DashboardController::class, 'inventoryHealth'])->name('dashboard.inventory-health');
         Route::get('/low-stock-alerts', [DashboardController::class, 'lowStockAlerts'])->name('dashboard.low-stock-alerts');
@@ -84,9 +85,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/inventory/adjustments', [InventoryController::class, 'storeAdjustment'])->name('inventory.adjustments.store');
     Route::get('/customers/summary', [CustomerController::class, 'summary'])->name('customers.summary');
     Route::apiResource('customers', CustomerController::class);
+    Route::get('/customers/{customer}/credits', [CustomerController::class, 'creditHistory'])->name('customers.credits');
     Route::get('/orders/summary', [OrderController::class, 'summary'])->name('orders.summary');
     Route::apiResource('orders', OrderController::class);
     Route::get('/payments/summary', [PaymentController::class, 'summary'])->name('payments.summary');
+    Route::post('/payments/credit', [PaymentController::class, 'recordCreditPayment'])->name('payments.credit');
     Route::apiResource('payments', PaymentController::class);
 
     // Food Menu Management

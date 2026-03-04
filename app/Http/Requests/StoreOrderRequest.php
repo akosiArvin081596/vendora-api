@@ -30,6 +30,10 @@ class StoreOrderRequest extends FormRequest
             ],
             'ordered_at' => ['required', 'date'],
             'status' => ['required', 'string', Rule::in(['pending', 'processing', 'completed', 'cancelled'])],
+            'payment_method' => ['nullable', 'string', Rule::in(['cash', 'card', 'online', 'credit'])],
+            'credit_customer.first_name' => ['required_if:payment_method,credit', 'nullable', 'string', 'max:255'],
+            'credit_customer.middle_name' => ['nullable', 'string', 'max:255'],
+            'credit_customer.last_name' => ['required_if:payment_method,credit', 'nullable', 'string', 'max:255'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => [
                 'required',
@@ -51,6 +55,8 @@ class StoreOrderRequest extends FormRequest
             'items.required' => 'Order items are required.',
             'items.*.product_id.exists' => 'Product must be valid.',
             'items.*.quantity.min' => 'Quantity must be at least 1.',
+            'credit_customer.first_name.required_if' => 'Customer first name is required for credit payments.',
+            'credit_customer.last_name.required_if' => 'Customer last name is required for credit payments.',
         ];
     }
 }

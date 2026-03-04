@@ -11,6 +11,7 @@ use App\Models\Customer;
 use App\Models\LedgerEntry;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Payment;
 use App\Models\Product;
 use App\Models\StoreProduct;
 use App\Services\FifoCostService;
@@ -382,6 +383,67 @@ class OrderController extends Controller
                 ]);
             }
 
+            // Handle credit payment
+            $paymentMethod = $data['payment_method'] ?? null;
+            if ($paymentMethod === 'credit') {
+                $creditData = $data['credit_customer'];
+                $composedName = Customer::composeName($creditData);
+
+                if ($customer) {
+                    // Update existing customer with credit name fields
+                    $customer->update([
+                        'first_name' => $creditData['first_name'],
+                        'middle_name' => $creditData['middle_name'] ?? null,
+                        'last_name' => $creditData['last_name'],
+                        'name' => $composedName,
+                        'credit_balance' => $customer->credit_balance + $lineTotal,
+                    ]);
+                } else {
+                    // Create new customer for credit
+                    $customer = Customer::query()->create([
+                        'user_id' => $user->id,
+                        'store_id' => $store?->id,
+                        'first_name' => $creditData['first_name'],
+                        'middle_name' => $creditData['middle_name'] ?? null,
+                        'last_name' => $creditData['last_name'],
+                        'name' => $composedName,
+                        'status' => 'active',
+                        'orders_count' => 1,
+                        'total_spent' => $lineTotal,
+                        'credit_balance' => $lineTotal,
+                    ]);
+                    $order->update(['customer_id' => $customer->id]);
+                }
+
+                // Create credit payment record
+                $paymentNumber = $this->nextPaymentNumber($user->id);
+                Payment::query()->create([
+                    'user_id' => $user->id,
+                    'store_id' => $store?->id,
+                    'order_id' => $order->id,
+                    'customer_id' => $customer->id,
+                    'payment_number' => $paymentNumber,
+                    'paid_at' => $data['ordered_at'],
+                    'amount' => $lineTotal,
+                    'currency' => 'PHP',
+                    'method' => 'credit',
+                    'status' => 'pending',
+                ]);
+
+                // Create credit ledger entry
+                LedgerEntry::query()->create([
+                    'user_id' => $user->id,
+                    'store_id' => $store?->id,
+                    'order_id' => $order->id,
+                    'customer_id' => $customer->id,
+                    'type' => 'credit',
+                    'category' => 'financial',
+                    'amount' => $lineTotal,
+                    'reference' => $orderNumber,
+                    'description' => 'Credit sale '.$orderNumber.' - '.$composedName,
+                ]);
+            }
+
             // Create ledger entry for the sale (revenue)
             LedgerEntry::query()->create([
                 'user_id' => $user->id,
@@ -547,6 +609,19 @@ class OrderController extends Controller
         }
 
         return $query->findOrFail($orderId);
+    }
+
+    protected function nextPaymentNumber(int $userId): string
+    {
+        $latest = Payment::query()
+            ->where('user_id', $userId)
+            ->orderByDesc('id')
+            ->value('payment_number');
+
+        $latestNumber = $latest ? (int) str_replace('PAY-', '', $latest) : 0;
+        $next = $latestNumber + 1;
+
+        return 'PAY-'.str_pad((string) $next, 3, '0', STR_PAD_LEFT);
     }
 
     protected function nextOrderNumber(int $userId): string

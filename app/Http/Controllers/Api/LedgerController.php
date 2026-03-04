@@ -44,7 +44,7 @@ class LedgerController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $query = LedgerEntry::query()
-            ->with(['product'])
+            ->with(['product', 'customer'])
             ->where('user_id', $request->user()->id);
 
         $store = $this->currentStore($request);

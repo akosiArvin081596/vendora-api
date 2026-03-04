@@ -30,7 +30,7 @@ class StorePaymentRequest extends FormRequest
             ],
             'paid_at' => ['required', 'date'],
             'amount' => ['required', 'integer', 'min:1'],
-            'method' => ['required', 'string', Rule::in(['cash', 'card', 'online'])],
+            'method' => ['required', 'string', Rule::in(['cash', 'card', 'online', 'credit'])],
             'status' => ['required', 'string', Rule::in(['completed', 'pending', 'refunded'])],
         ];
     }
@@ -47,7 +47,7 @@ class StorePaymentRequest extends FormRequest
             'amount.required' => 'Payment amount is required.',
             'amount.min' => 'Payment amount must be at least 1.',
             'method.required' => 'Payment method is required.',
-            'method.in' => 'Payment method must be cash, card, or online.',
+            'method.in' => 'Payment method must be cash, card, online, or credit.',
             'status.required' => 'Payment status is required.',
             'status.in' => 'Payment status must be completed, pending, or refunded.',
         ];

@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Customer;
 use App\Models\Order;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -28,8 +29,18 @@ class PaymentFactory extends Factory
             'paid_at' => $paidAt,
             'amount' => $this->faker->numberBetween(200, 5000),
             'currency' => 'PHP',
-            'method' => $this->faker->randomElement(['cash', 'card', 'online']),
+            'method' => $this->faker->randomElement(['cash', 'card', 'online', 'credit']),
             'status' => $this->faker->randomElement(['completed', 'pending', 'refunded']),
         ];
+    }
+
+    public function credit(): static
+    {
+        return $this->state(fn () => [
+            'order_id' => null,
+            'customer_id' => Customer::factory(),
+            'method' => 'credit',
+            'status' => 'pending',
+        ]);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Customer;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -26,6 +27,7 @@ class LedgerEntryFactory extends Factory
             'store_id' => null,
             'product_id' => Product::factory(),
             'order_id' => null,
+            'customer_id' => null,
             'type' => $type,
             'category' => $category,
             'quantity' => $category === 'inventory' ? $this->faker->numberBetween(-50, 50) : null,
@@ -74,6 +76,30 @@ class LedgerEntryFactory extends Factory
             'category' => 'financial',
             'quantity' => null,
             'amount' => $this->faker->numberBetween(-50000, -100),
+        ]);
+    }
+
+    public function credit(): static
+    {
+        return $this->state(fn () => [
+            'type' => 'credit',
+            'category' => 'financial',
+            'product_id' => null,
+            'customer_id' => Customer::factory(),
+            'quantity' => null,
+            'amount' => $this->faker->numberBetween(100, 50000),
+        ]);
+    }
+
+    public function creditPayment(): static
+    {
+        return $this->state(fn () => [
+            'type' => 'credit_payment',
+            'category' => 'financial',
+            'product_id' => null,
+            'customer_id' => Customer::factory(),
+            'quantity' => null,
+            'amount' => $this->faker->numberBetween(100, 50000),
         ]);
     }
 }

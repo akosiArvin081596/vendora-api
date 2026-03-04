@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\AuditLog;
+use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
@@ -135,6 +136,57 @@ it('returns recent activity items', function () {
     $response->assertSuccessful();
     $response->assertJsonPath('data.items.0.action', 'create');
     $response->assertJsonPath('data.items.0.message', 'Create Order #5');
+});
+
+it('returns cash vs credit breakdown', function () {
+    $user = User::factory()->create();
+    $order = Order::factory()->for($user)->create(['ordered_at' => '2026-03-02']);
+    $customer = Customer::factory()->for($user)->create(['credit_balance' => 8000]);
+
+    // Cash payments (cash + card + online grouped as "cash")
+    Payment::factory()->for($user)->create([
+        'order_id' => $order->id,
+        'paid_at' => '2026-03-02 10:00:00',
+        'method' => 'cash',
+        'amount' => 3000,
+    ]);
+    Payment::factory()->for($user)->create([
+        'order_id' => $order->id,
+        'paid_at' => '2026-03-02 11:00:00',
+        'method' => 'card',
+        'amount' => 2000,
+    ]);
+
+    // Credit payment
+    Payment::factory()->for($user)->create([
+        'order_id' => $order->id,
+        'customer_id' => $customer->id,
+        'paid_at' => '2026-03-03 09:00:00',
+        'method' => 'credit',
+        'amount' => 5000,
+    ]);
+
+    // Outside range — should not count
+    Payment::factory()->for($user)->create([
+        'order_id' => $order->id,
+        'paid_at' => '2026-02-28 09:00:00',
+        'method' => 'cash',
+        'amount' => 9999,
+    ]);
+
+    Sanctum::actingAs($user);
+
+    $response = $this->getJson('/api/dashboard/cash-vs-credit?start_date=2026-03-01&end_date=2026-03-04');
+
+    $response->assertSuccessful();
+    $response->assertJsonPath('data.total_amount', 10000);
+    $response->assertJsonPath('data.cash.amount', 5000);
+    $response->assertJsonPath('data.cash.count', 2);
+    $response->assertJsonPath('data.cash.percentage', 50);
+    $response->assertJsonPath('data.credit.amount', 5000);
+    $response->assertJsonPath('data.credit.count', 1);
+    $response->assertJsonPath('data.credit.percentage', 50);
+    $response->assertJsonPath('data.outstanding_credit', 8000);
 });
 
 it('validates dashboard date ranges', function () {

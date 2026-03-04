@@ -24,6 +24,7 @@ class Payment extends Model
         'user_id',
         'store_id',
         'order_id',
+        'customer_id',
         'payment_number',
         'paid_at',
         'amount',
@@ -51,6 +52,11 @@ class Payment extends Model
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
+    }
+
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
     }
 
     /**

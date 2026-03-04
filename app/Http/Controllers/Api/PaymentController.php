@@ -3,16 +3,20 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreCreditPaymentRequest;
 use App\Http\Requests\StorePaymentRequest;
 use App\Http\Requests\UpdatePaymentRequest;
 use App\Http\Resources\PaymentResource;
 use App\Http\Resources\PaymentSummaryResource;
+use App\Models\Customer;
+use App\Models\LedgerEntry;
 use App\Models\Order;
 use App\Models\Payment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use OpenApi\Attributes as OA;
 
 class PaymentController extends Controller
@@ -70,7 +74,7 @@ class PaymentController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $query = Payment::query()
-            ->with(['order.customer'])
+            ->with(['order.customer', 'customer'])
             ->where('user_id', $request->user()->id);
 
         $search = $request->string('search')->trim();
@@ -147,12 +151,22 @@ class PaymentController extends Controller
             ->where('status', 'completed')
             ->where('method', 'online')
             ->sum('amount');
+        $creditPayments = (int) Payment::query()
+            ->where('user_id', $userId)
+            ->where('method', 'credit')
+            ->where('status', 'pending')
+            ->sum('amount');
+        $outstandingCredit = (int) Customer::query()
+            ->where('user_id', $userId)
+            ->sum('credit_balance');
 
         return new PaymentSummaryResource([
             'total_revenue' => $totalRevenue,
             'cash_payments' => $cashPayments,
             'card_payments' => $cardPayments,
             'online_payments' => $onlinePayments,
+            'credit_payments' => $creditPayments,
+            'outstanding_credit' => $outstandingCredit,
         ]);
     }
 
@@ -215,7 +229,78 @@ class PaymentController extends Controller
             'status' => $data['status'],
         ]);
 
-        return (new PaymentResource($payment->load('order.customer')))
+        return (new PaymentResource($payment->load(['order.customer', 'customer'])))
+            ->response()
+            ->setStatusCode(201);
+    }
+
+    #[OA\Post(
+        path: '/api/payments/credit',
+        tags: ['Payment'],
+        summary: 'Record a credit repayment',
+        security: [['bearerAuth' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['customer_id', 'amount', 'paid_at', 'method'],
+                properties: [
+                    new OA\Property(property: 'customer_id', type: 'integer', example: 1),
+                    new OA\Property(property: 'amount', type: 'integer', example: 5000),
+                    new OA\Property(property: 'paid_at', type: 'string', example: '2026-03-04 14:30'),
+                    new OA\Property(property: 'method', type: 'string', example: 'cash'),
+                    new OA\Property(property: 'note', type: 'string', example: 'Partial repayment'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 201, description: 'Credit repayment recorded'),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 422, description: 'Validation error'),
+        ]
+    )]
+    public function recordCreditPayment(StoreCreditPaymentRequest $request): JsonResponse
+    {
+        $data = $request->validated();
+        $user = $request->user();
+
+        $payment = DB::transaction(function () use ($data, $user) {
+            $customer = Customer::query()
+                ->where('user_id', $user->id)
+                ->lockForUpdate()
+                ->findOrFail($data['customer_id']);
+
+            $amount = $data['amount'];
+
+            $payment = Payment::query()->create([
+                'user_id' => $user->id,
+                'order_id' => null,
+                'customer_id' => $customer->id,
+                'payment_number' => $this->nextPaymentNumber($user->id),
+                'paid_at' => $data['paid_at'],
+                'amount' => $amount,
+                'currency' => 'PHP',
+                'method' => $data['method'],
+                'status' => 'completed',
+            ]);
+
+            LedgerEntry::query()->create([
+                'user_id' => $user->id,
+                'customer_id' => $customer->id,
+                'type' => 'credit_payment',
+                'category' => 'financial',
+                'amount' => $amount,
+                'reference' => $payment->payment_number,
+                'description' => 'Credit repayment '.$payment->payment_number.' - '.$customer->name.($data['note'] ?? '' ? ' - '.$data['note'] : ''),
+            ]);
+
+            $customer->update([
+                'credit_balance' => $customer->credit_balance - $amount,
+            ]);
+
+            return $payment;
+        });
+
+        return (new PaymentResource($payment->load('customer')))
             ->response()
             ->setStatusCode(201);
     }
@@ -252,7 +337,7 @@ class PaymentController extends Controller
     )]
     public function show(Request $request, int $payment): PaymentResource
     {
-        $payment = $this->findPayment($request, $payment)->load('order.customer');
+        $payment = $this->findPayment($request, $payment)->load(['order.customer', 'customer']);
 
         return new PaymentResource($payment);
     }
@@ -298,7 +383,7 @@ class PaymentController extends Controller
         $payment = $this->findPayment($request, $payment);
         $payment->update($request->validated());
 
-        return new PaymentResource($payment->load('order.customer'));
+        return new PaymentResource($payment->load(['order.customer', 'customer']));
     }
 
     #[OA\Delete(

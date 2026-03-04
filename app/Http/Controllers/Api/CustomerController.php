@@ -7,7 +7,9 @@ use App\Http\Requests\StoreCustomerRequest;
 use App\Http\Requests\UpdateCustomerRequest;
 use App\Http\Resources\CustomerResource;
 use App\Http\Resources\CustomerSummaryResource;
+use App\Http\Resources\LedgerEntryResource;
 use App\Models\Customer;
+use App\Models\LedgerEntry;
 use App\Traits\HasStoreContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -320,6 +322,40 @@ class CustomerController extends Controller
         $customer->delete();
 
         return response()->noContent();
+    }
+
+    #[OA\Get(
+        path: '/api/customers/{customer}/credits',
+        tags: ['Customer'],
+        summary: 'Get credit history for a customer',
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'customer', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'page', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'per_page', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Credit history'),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 404, description: 'Not found'),
+        ]
+    )]
+    public function creditHistory(Request $request, int $customer): AnonymousResourceCollection
+    {
+        $customer = $this->findCustomer($request, $customer);
+
+        $perPage = $request->integer('per_page', 20);
+        $perPage = max(1, min(100, $perPage));
+
+        $entries = LedgerEntry::query()
+            ->with(['customer'])
+            ->where('user_id', $request->user()->id)
+            ->where('customer_id', $customer->id)
+            ->whereIn('type', ['credit', 'credit_payment'])
+            ->orderByDesc('created_at')
+            ->paginate($perPage);
+
+        return LedgerEntryResource::collection($entries);
     }
 
     protected function findCustomer(Request $request, int $customerId): Customer

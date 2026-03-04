@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DashboardWidgetRequest;
+use App\Http\Resources\DashboardCashVsCreditResource;
 use App\Http\Resources\DashboardChannelResource;
 use App\Http\Resources\DashboardInventoryHealthResource;
 use App\Http\Resources\DashboardKpiResource;
@@ -14,6 +15,7 @@ use App\Http\Resources\DashboardRecentActivityResource;
 use App\Http\Resources\DashboardSalesTrendResource;
 use App\Http\Resources\DashboardTopProductsResource;
 use App\Models\AuditLog;
+use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
@@ -316,6 +318,93 @@ class DashboardController extends Controller
             'end_date' => $range['end_date'],
             'total_amount' => $totalAmount,
             'methods' => $methods,
+        ]);
+    }
+
+    #[OA\Get(
+        path: '/api/dashboard/cash-vs-credit',
+        tags: ['Dashboard'],
+        summary: 'Cash vs Credit breakdown',
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'start_date', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'end_date', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Cash vs Credit breakdown',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'start_date', type: 'string', example: '2026-02-26'),
+                        new OA\Property(property: 'end_date', type: 'string', example: '2026-03-04'),
+                        new OA\Property(property: 'total_amount', type: 'integer', example: 50000),
+                        new OA\Property(
+                            property: 'cash',
+                            type: 'object',
+                            properties: [
+                                new OA\Property(property: 'amount', type: 'integer', example: 35000),
+                                new OA\Property(property: 'count', type: 'integer', example: 18),
+                                new OA\Property(property: 'percentage', type: 'number', example: 70.0),
+                            ]
+                        ),
+                        new OA\Property(
+                            property: 'credit',
+                            type: 'object',
+                            properties: [
+                                new OA\Property(property: 'amount', type: 'integer', example: 15000),
+                                new OA\Property(property: 'count', type: 'integer', example: 5),
+                                new OA\Property(property: 'percentage', type: 'number', example: 30.0),
+                            ]
+                        ),
+                        new OA\Property(property: 'outstanding_credit', type: 'integer', example: 12000),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 422, description: 'Validation error'),
+        ]
+    )]
+    public function cashVsCredit(DashboardWidgetRequest $request): DashboardCashVsCreditResource
+    {
+        $range = $this->resolveDateRange($request);
+        $userId = $request->user()->id;
+
+        $rows = Payment::query()
+            ->selectRaw("CASE WHEN method = 'credit' THEN 'credit' ELSE 'cash' END as payment_type")
+            ->selectRaw('COUNT(*) as payments_count')
+            ->selectRaw('SUM(amount) as total')
+            ->where('user_id', $userId)
+            ->whereBetween('paid_at', [$range['start'], $range['end']])
+            ->groupBy('payment_type')
+            ->get()
+            ->keyBy('payment_type');
+
+        $cashAmount = (int) ($rows['cash']?->total ?? 0);
+        $cashCount = (int) ($rows['cash']?->payments_count ?? 0);
+        $creditAmount = (int) ($rows['credit']?->total ?? 0);
+        $creditCount = (int) ($rows['credit']?->payments_count ?? 0);
+        $totalAmount = $cashAmount + $creditAmount;
+
+        $outstandingCredit = (int) Customer::query()
+            ->where('user_id', $userId)
+            ->sum('credit_balance');
+
+        return new DashboardCashVsCreditResource([
+            'start_date' => $range['start_date'],
+            'end_date' => $range['end_date'],
+            'total_amount' => $totalAmount,
+            'cash' => [
+                'amount' => $cashAmount,
+                'count' => $cashCount,
+                'percentage' => $this->percentage($cashAmount, $totalAmount),
+            ],
+            'credit' => [
+                'amount' => $creditAmount,
+                'count' => $creditCount,
+                'percentage' => $this->percentage($creditAmount, $totalAmount),
+            ],
+            'outstanding_credit' => $outstandingCredit,
         ]);
     }
 

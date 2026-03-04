@@ -21,6 +21,8 @@ class LedgerEntryResource extends JsonResource
             'product' => $this->product?->name,
             'product_id' => $this->product_id,
             'order_id' => $this->order_id,
+            'customer_id' => $this->customer_id,
+            'customer' => $this->customer?->name,
             'quantity' => $this->quantity,
             'amount' => $this->amount,
             'balance_qty' => $this->balance_qty,

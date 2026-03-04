@@ -17,11 +17,15 @@ class CustomerResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'first_name' => $this->first_name,
+            'middle_name' => $this->middle_name,
+            'last_name' => $this->last_name,
             'email' => $this->email,
             'phone' => $this->phone,
             'status' => $this->status,
             'orders_count' => $this->orders_count,
             'total_spent' => $this->total_spent,
+            'credit_balance' => $this->credit_balance,
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];
