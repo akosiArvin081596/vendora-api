@@ -13,9 +13,34 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
+use OpenApi\Attributes as OA;
 
 class FoodMenuReservationController extends Controller
 {
+    #[OA\Get(
+        path: '/api/food-menu-reservations',
+        tags: ['Food Menu Reservations'],
+        summary: 'List reservations',
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'status', in: 'query', required: false, schema: new OA\Schema(type: 'string', enum: ['pending', 'confirmed', 'cancelled', 'completed'])),
+            new OA\Parameter(name: 'food_menu_item_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'per_page', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'page', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Reservations list',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', type: 'array', items: new OA\Items(ref: '#/components/schemas/FoodMenuReservation')),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+        ]
+    )]
     public function index(Request $request): AnonymousResourceCollection
     {
         $query = FoodMenuReservation::query()
@@ -38,6 +63,41 @@ class FoodMenuReservationController extends Controller
         );
     }
 
+    #[OA\Post(
+        path: '/api/food-menu-reservations',
+        tags: ['Food Menu Reservations'],
+        summary: 'Create a reservation',
+        security: [['bearerAuth' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['food_menu_item_id', 'customer_name', 'servings'],
+                properties: [
+                    new OA\Property(property: 'food_menu_item_id', type: 'integer', example: 1),
+                    new OA\Property(property: 'customer_id', type: 'integer', example: 5),
+                    new OA\Property(property: 'customer_name', type: 'string', example: 'Juan Dela Cruz'),
+                    new OA\Property(property: 'customer_phone', type: 'string', example: '09171234567'),
+                    new OA\Property(property: 'servings', type: 'integer', example: 3),
+                    new OA\Property(property: 'notes', type: 'string', example: 'Extra rice'),
+                    new OA\Property(property: 'reserved_at', type: 'string', format: 'date-time', example: '2026-03-07 12:00:00'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: 'Reservation created',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/FoodMenuReservation'),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 403, description: 'Forbidden'),
+            new OA\Response(response: 422, description: 'Validation error or insufficient servings'),
+        ]
+    )]
     public function store(StoreFoodMenuReservationRequest $request): JsonResponse
     {
         $data = $request->validated();
@@ -75,6 +135,28 @@ class FoodMenuReservationController extends Controller
             ->setStatusCode(201);
     }
 
+    #[OA\Get(
+        path: '/api/food-menu-reservations/{reservation}',
+        tags: ['Food Menu Reservations'],
+        summary: 'Get a single reservation',
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'reservation', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Reservation details',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/FoodMenuReservation'),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 404, description: 'Not found'),
+        ]
+    )]
     public function show(Request $request, int $reservation): FoodMenuReservationResource
     {
         $reservation = $this->findReservation($request, $reservation);
@@ -82,6 +164,43 @@ class FoodMenuReservationController extends Controller
         return new FoodMenuReservationResource($reservation->load('foodMenuItem'));
     }
 
+    #[OA\Put(
+        path: '/api/food-menu-reservations/{reservation}',
+        tags: ['Food Menu Reservations'],
+        summary: 'Update a reservation',
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'reservation', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: 'customer_name', type: 'string', example: 'Maria Santos'),
+                    new OA\Property(property: 'customer_phone', type: 'string', example: '09281234567'),
+                    new OA\Property(property: 'servings', type: 'integer', example: 5),
+                    new OA\Property(property: 'status', type: 'string', enum: ['pending', 'confirmed', 'cancelled', 'completed'], example: 'confirmed'),
+                    new OA\Property(property: 'notes', type: 'string', example: 'Updated notes'),
+                    new OA\Property(property: 'reserved_at', type: 'string', format: 'date-time', example: '2026-03-07 14:00:00'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Reservation updated',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/FoodMenuReservation'),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 403, description: 'Forbidden'),
+            new OA\Response(response: 404, description: 'Not found'),
+            new OA\Response(response: 422, description: 'Validation error or insufficient servings'),
+        ]
+    )]
     public function update(UpdateFoodMenuReservationRequest $request, int $reservation): FoodMenuReservationResource
     {
         $reservation = $this->findReservation($request, $reservation);
@@ -129,6 +248,20 @@ class FoodMenuReservationController extends Controller
         return new FoodMenuReservationResource($reservation->fresh()->load('foodMenuItem'));
     }
 
+    #[OA\Delete(
+        path: '/api/food-menu-reservations/{reservation}',
+        tags: ['Food Menu Reservations'],
+        summary: 'Delete a reservation',
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'reservation', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 204, description: 'Reservation deleted'),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 404, description: 'Not found'),
+        ]
+    )]
     public function destroy(Request $request, int $reservation): JsonResponse
     {
         $reservation = $this->findReservation($request, $reservation);

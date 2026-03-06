@@ -17,9 +17,36 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use OpenApi\Attributes as OA;
 
 class FoodMenuItemController extends Controller
 {
+    #[OA\Get(
+        path: '/api/food-menu',
+        tags: ['Food Menu'],
+        summary: 'List own food menu items',
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'search', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'category', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'is_available', in: 'query', required: false, schema: new OA\Schema(type: 'boolean')),
+            new OA\Parameter(name: 'store_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'per_page', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'page', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Food menu items list',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', type: 'array', items: new OA\Items(ref: '#/components/schemas/FoodMenuItem')),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+        ]
+    )]
     public function index(Request $request): AnonymousResourceCollection
     {
         $query = FoodMenuItem::query()
@@ -53,6 +80,43 @@ class FoodMenuItemController extends Controller
         );
     }
 
+    #[OA\Post(
+        path: '/api/food-menu',
+        tags: ['Food Menu'],
+        summary: 'Create a food menu item',
+        security: [['bearerAuth' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['name', 'price', 'total_servings'],
+                properties: [
+                    new OA\Property(property: 'name', type: 'string', example: 'Chicken Adobo'),
+                    new OA\Property(property: 'description', type: 'string', example: 'Classic Filipino chicken adobo'),
+                    new OA\Property(property: 'category', type: 'string', example: 'Main Course'),
+                    new OA\Property(property: 'price', type: 'number', format: 'float', example: 120.00),
+                    new OA\Property(property: 'currency', type: 'string', example: 'PHP'),
+                    new OA\Property(property: 'image_base64', type: 'string', example: 'data:image/png;base64,...'),
+                    new OA\Property(property: 'total_servings', type: 'integer', example: 50),
+                    new OA\Property(property: 'is_available', type: 'boolean', example: true),
+                    new OA\Property(property: 'store_id', type: 'integer', example: 1),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: 'Menu item created',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/FoodMenuItem'),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 403, description: 'Forbidden'),
+            new OA\Response(response: 422, description: 'Validation error'),
+        ]
+    )]
     public function store(StoreFoodMenuItemRequest $request): JsonResponse
     {
         $data = $request->validated();
@@ -75,6 +139,28 @@ class FoodMenuItemController extends Controller
             ->setStatusCode(201);
     }
 
+    #[OA\Get(
+        path: '/api/food-menu/{foodMenuItem}',
+        tags: ['Food Menu'],
+        summary: 'Get a single food menu item',
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'foodMenuItem', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Menu item details with reservations',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/FoodMenuItem'),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 404, description: 'Not found'),
+        ]
+    )]
     public function show(Request $request, int $foodMenuItem): FoodMenuItemResource
     {
         $item = $this->findMenuItem($request, $foodMenuItem);
@@ -82,6 +168,46 @@ class FoodMenuItemController extends Controller
         return new FoodMenuItemResource($item->load('reservations'));
     }
 
+    #[OA\Put(
+        path: '/api/food-menu/{foodMenuItem}',
+        tags: ['Food Menu'],
+        summary: 'Update a food menu item',
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'foodMenuItem', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: 'name', type: 'string', example: 'Chicken Adobo'),
+                    new OA\Property(property: 'description', type: 'string', example: 'Updated description'),
+                    new OA\Property(property: 'category', type: 'string', example: 'Main Course'),
+                    new OA\Property(property: 'price', type: 'number', format: 'float', example: 150.00),
+                    new OA\Property(property: 'currency', type: 'string', example: 'PHP'),
+                    new OA\Property(property: 'image_base64', type: 'string', example: 'data:image/png;base64,...'),
+                    new OA\Property(property: 'total_servings', type: 'integer', example: 100),
+                    new OA\Property(property: 'is_available', type: 'boolean', example: true),
+                    new OA\Property(property: 'store_id', type: 'integer', example: 1),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Menu item updated',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/FoodMenuItem'),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 403, description: 'Forbidden'),
+            new OA\Response(response: 404, description: 'Not found'),
+            new OA\Response(response: 422, description: 'Validation error'),
+        ]
+    )]
     public function update(UpdateFoodMenuItemRequest $request, int $foodMenuItem): FoodMenuItemResource
     {
         $item = $this->findMenuItem($request, $foodMenuItem);
@@ -106,6 +232,20 @@ class FoodMenuItemController extends Controller
         return new FoodMenuItemResource($item);
     }
 
+    #[OA\Delete(
+        path: '/api/food-menu/{foodMenuItem}',
+        tags: ['Food Menu'],
+        summary: 'Delete a food menu item',
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'foodMenuItem', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 204, description: 'Menu item deleted'),
+            new OA\Response(response: 401, description: 'Unauthenticated'),
+            new OA\Response(response: 404, description: 'Not found'),
+        ]
+    )]
     public function destroy(Request $request, int $foodMenuItem): JsonResponse
     {
         $item = $this->findMenuItem($request, $foodMenuItem);
@@ -114,6 +254,32 @@ class FoodMenuItemController extends Controller
         return response()->json(null, 204);
     }
 
+    #[OA\Get(
+        path: '/api/food-menu/public/vendors',
+        tags: ['Food Menu (Public)'],
+        summary: 'List vendors with available food menus',
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Vendor list',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'success', type: 'boolean', example: true),
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(
+                                properties: [
+                                    new OA\Property(property: 'id', type: 'integer', example: 1),
+                                    new OA\Property(property: 'name', type: 'string', example: 'Juan\'s Kitchen'),
+                                ]
+                            )
+                        ),
+                    ]
+                )
+            ),
+        ]
+    )]
     public function publicVendors(): JsonResponse
     {
         $vendors = User::query()
@@ -131,6 +297,29 @@ class FoodMenuItemController extends Controller
         return response()->json(['success' => true, 'data' => $vendors]);
     }
 
+    #[OA\Get(
+        path: '/api/food-menu/public/{user}',
+        tags: ['Food Menu (Public)'],
+        summary: 'View a vendor\'s public food menu',
+        parameters: [
+            new OA\Parameter(name: 'user', in: 'path', required: true, description: 'Vendor user ID', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'category', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'per_page', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'page', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Public menu items',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', type: 'array', items: new OA\Items(ref: '#/components/schemas/FoodMenuItem')),
+                    ]
+                )
+            ),
+            new OA\Response(response: 404, description: 'Vendor not found'),
+        ]
+    )]
     public function publicMenu(Request $request, User $user): AnonymousResourceCollection
     {
         $query = FoodMenuItem::query()
@@ -150,6 +339,41 @@ class FoodMenuItemController extends Controller
         );
     }
 
+    #[OA\Post(
+        path: '/api/food-menu/public/{user}/reserve',
+        tags: ['Food Menu (Public)'],
+        summary: 'Create a public reservation',
+        parameters: [
+            new OA\Parameter(name: 'user', in: 'path', required: true, description: 'Vendor user ID', schema: new OA\Schema(type: 'integer')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['food_menu_item_id', 'customer_name', 'customer_phone', 'servings'],
+                properties: [
+                    new OA\Property(property: 'food_menu_item_id', type: 'integer', example: 1),
+                    new OA\Property(property: 'customer_name', type: 'string', example: 'Maria Santos'),
+                    new OA\Property(property: 'customer_phone', type: 'string', example: '09171234567'),
+                    new OA\Property(property: 'servings', type: 'integer', example: 5),
+                    new OA\Property(property: 'notes', type: 'string', example: 'No spicy please'),
+                    new OA\Property(property: 'reserved_at', type: 'string', format: 'date-time', example: '2026-03-07 12:00:00'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: 'Reservation created',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/FoodMenuReservation'),
+                    ]
+                )
+            ),
+            new OA\Response(response: 404, description: 'Vendor not found'),
+            new OA\Response(response: 422, description: 'Validation error or insufficient servings'),
+        ]
+    )]
     public function publicReserve(PublicFoodMenuReservationRequest $request, User $user): JsonResponse
     {
         $data = $request->validated();

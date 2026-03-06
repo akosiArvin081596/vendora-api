@@ -2550,6 +2550,896 @@
                 ]
             }
         },
+        "/api/food-menu": {
+            "get": {
+                "tags": [
+                    "Food Menu"
+                ],
+                "summary": "List own food menu items",
+                "operationId": "27b3c2cc563098f06e1ce741a7ac61a0",
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "category",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "is_available",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "store_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Food menu items list",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/FoodMenuItem"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Food Menu"
+                ],
+                "summary": "Create a food menu item",
+                "operationId": "20fd1cf68c71a45215fbdea59e0e6cd8",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "price",
+                                    "total_servings"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Chicken Adobo"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Classic Filipino chicken adobo"
+                                    },
+                                    "category": {
+                                        "type": "string",
+                                        "example": "Main Course"
+                                    },
+                                    "price": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 120
+                                    },
+                                    "currency": {
+                                        "type": "string",
+                                        "example": "PHP"
+                                    },
+                                    "image_base64": {
+                                        "type": "string",
+                                        "example": "data:image/png;base64,..."
+                                    },
+                                    "total_servings": {
+                                        "type": "integer",
+                                        "example": 50
+                                    },
+                                    "is_available": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "store_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Menu item created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/FoodMenuItem"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/food-menu/{foodMenuItem}": {
+            "get": {
+                "tags": [
+                    "Food Menu"
+                ],
+                "summary": "Get a single food menu item",
+                "operationId": "14ebc1332b1790b665dfc4ce5dfa4ca5",
+                "parameters": [
+                    {
+                        "name": "foodMenuItem",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Menu item details with reservations",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/FoodMenuItem"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Food Menu"
+                ],
+                "summary": "Update a food menu item",
+                "operationId": "ff731f6fe9ce50a6a10f7dab7bbc7938",
+                "parameters": [
+                    {
+                        "name": "foodMenuItem",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Chicken Adobo"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Updated description"
+                                    },
+                                    "category": {
+                                        "type": "string",
+                                        "example": "Main Course"
+                                    },
+                                    "price": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 150
+                                    },
+                                    "currency": {
+                                        "type": "string",
+                                        "example": "PHP"
+                                    },
+                                    "image_base64": {
+                                        "type": "string",
+                                        "example": "data:image/png;base64,..."
+                                    },
+                                    "total_servings": {
+                                        "type": "integer",
+                                        "example": 100
+                                    },
+                                    "is_available": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "store_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Menu item updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/FoodMenuItem"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Food Menu"
+                ],
+                "summary": "Delete a food menu item",
+                "operationId": "93a41c339dac1ade0818ee4ad7e91cbc",
+                "parameters": [
+                    {
+                        "name": "foodMenuItem",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Menu item deleted"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/food-menu/public/vendors": {
+            "get": {
+                "tags": [
+                    "Food Menu (Public)"
+                ],
+                "summary": "List vendors with available food menus",
+                "operationId": "c89f1c61e1846a9bb86b028786d12fb8",
+                "responses": {
+                    "200": {
+                        "description": "Vendor list",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "name": {
+                                                        "type": "string",
+                                                        "example": "Juan's Kitchen"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/food-menu/public/{user}": {
+            "get": {
+                "tags": [
+                    "Food Menu (Public)"
+                ],
+                "summary": "View a vendor's public food menu",
+                "operationId": "5d668f778921ef28bbee9dd4d9b7a4fe",
+                "parameters": [
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "description": "Vendor user ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "category",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Public menu items",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/FoodMenuItem"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Vendor not found"
+                    }
+                }
+            }
+        },
+        "/api/food-menu/public/{user}/reserve": {
+            "post": {
+                "tags": [
+                    "Food Menu (Public)"
+                ],
+                "summary": "Create a public reservation",
+                "operationId": "20cfd10af25a6b07f1d67c0740dc6aa8",
+                "parameters": [
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "description": "Vendor user ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "food_menu_item_id",
+                                    "customer_name",
+                                    "customer_phone",
+                                    "servings"
+                                ],
+                                "properties": {
+                                    "food_menu_item_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "customer_name": {
+                                        "type": "string",
+                                        "example": "Maria Santos"
+                                    },
+                                    "customer_phone": {
+                                        "type": "string",
+                                        "example": "09171234567"
+                                    },
+                                    "servings": {
+                                        "type": "integer",
+                                        "example": 5
+                                    },
+                                    "notes": {
+                                        "type": "string",
+                                        "example": "No spicy please"
+                                    },
+                                    "reserved_at": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "example": "2026-03-07 12:00:00"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Reservation created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/FoodMenuReservation"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Vendor not found"
+                    },
+                    "422": {
+                        "description": "Validation error or insufficient servings"
+                    }
+                }
+            }
+        },
+        "/api/food-menu-reservations": {
+            "get": {
+                "tags": [
+                    "Food Menu Reservations"
+                ],
+                "summary": "List reservations",
+                "operationId": "4a11e9936777d6075732973db6b81f6a",
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "pending",
+                                "confirmed",
+                                "cancelled",
+                                "completed"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "food_menu_item_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reservations list",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/FoodMenuReservation"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Food Menu Reservations"
+                ],
+                "summary": "Create a reservation",
+                "operationId": "c1fc452213702fc55fc276106455f3b6",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "food_menu_item_id",
+                                    "customer_name",
+                                    "servings"
+                                ],
+                                "properties": {
+                                    "food_menu_item_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "customer_id": {
+                                        "type": "integer",
+                                        "example": 5
+                                    },
+                                    "customer_name": {
+                                        "type": "string",
+                                        "example": "Juan Dela Cruz"
+                                    },
+                                    "customer_phone": {
+                                        "type": "string",
+                                        "example": "09171234567"
+                                    },
+                                    "servings": {
+                                        "type": "integer",
+                                        "example": 3
+                                    },
+                                    "notes": {
+                                        "type": "string",
+                                        "example": "Extra rice"
+                                    },
+                                    "reserved_at": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "example": "2026-03-07 12:00:00"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Reservation created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/FoodMenuReservation"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "422": {
+                        "description": "Validation error or insufficient servings"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/food-menu-reservations/{reservation}": {
+            "get": {
+                "tags": [
+                    "Food Menu Reservations"
+                ],
+                "summary": "Get a single reservation",
+                "operationId": "09220972d061e05711e5f75d9e7af3ed",
+                "parameters": [
+                    {
+                        "name": "reservation",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reservation details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/FoodMenuReservation"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Food Menu Reservations"
+                ],
+                "summary": "Update a reservation",
+                "operationId": "e99a344b42bc2485bdea59a6d02c5f94",
+                "parameters": [
+                    {
+                        "name": "reservation",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "customer_name": {
+                                        "type": "string",
+                                        "example": "Maria Santos"
+                                    },
+                                    "customer_phone": {
+                                        "type": "string",
+                                        "example": "09281234567"
+                                    },
+                                    "servings": {
+                                        "type": "integer",
+                                        "example": 5
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "pending",
+                                            "confirmed",
+                                            "cancelled",
+                                            "completed"
+                                        ],
+                                        "example": "confirmed"
+                                    },
+                                    "notes": {
+                                        "type": "string",
+                                        "example": "Updated notes"
+                                    },
+                                    "reserved_at": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "example": "2026-03-07 14:00:00"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Reservation updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/FoodMenuReservation"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    },
+                    "422": {
+                        "description": "Validation error or insufficient servings"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Food Menu Reservations"
+                ],
+                "summary": "Delete a reservation",
+                "operationId": "ca27207c54ab3ccc8174f6b9eb7ced99",
+                "parameters": [
+                    {
+                        "name": "reservation",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Reservation deleted"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/inventory": {
             "get": {
                 "tags": [
@@ -6060,6 +6950,160 @@
         }
     },
     "components": {
+        "schemas": {
+            "FoodMenuItem": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "user_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "store_id": {
+                        "type": "integer",
+                        "example": 1,
+                        "nullable": true
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Chicken Adobo"
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "Classic Filipino chicken adobo",
+                        "nullable": true
+                    },
+                    "category": {
+                        "type": "string",
+                        "example": "Main Course",
+                        "nullable": true
+                    },
+                    "price": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 120,
+                        "nullable": true
+                    },
+                    "currency": {
+                        "type": "string",
+                        "example": "PHP"
+                    },
+                    "image": {
+                        "type": "string",
+                        "example": "http://vendora.test/storage/food-menu/img.jpg",
+                        "nullable": true
+                    },
+                    "total_servings": {
+                        "type": "integer",
+                        "example": 50
+                    },
+                    "reserved_servings": {
+                        "type": "integer",
+                        "example": 10
+                    },
+                    "remaining_servings": {
+                        "type": "integer",
+                        "example": 40
+                    },
+                    "is_sold_out": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "is_available": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "reservations": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/FoodMenuReservation"
+                        }
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "FoodMenuReservation": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "food_menu_item_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "user_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "customer_id": {
+                        "type": "integer",
+                        "example": 5,
+                        "nullable": true
+                    },
+                    "customer_name": {
+                        "type": "string",
+                        "example": "Juan Dela Cruz"
+                    },
+                    "customer_phone": {
+                        "type": "string",
+                        "example": "09171234567",
+                        "nullable": true
+                    },
+                    "servings": {
+                        "type": "integer",
+                        "example": 3
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "pending",
+                            "confirmed",
+                            "cancelled",
+                            "completed"
+                        ],
+                        "example": "pending"
+                    },
+                    "notes": {
+                        "type": "string",
+                        "example": "Extra rice",
+                        "nullable": true
+                    },
+                    "reserved_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "food_menu_item": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/FoodMenuItem"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            }
+        },
         "securitySchemes": {
             "bearerAuth": {
                 "type": "http",
@@ -6123,6 +7167,18 @@
         {
             "name": "Store Staff",
             "description": "Store staff endpoints"
+        },
+        {
+            "name": "Food Menu",
+            "description": "Food Menu"
+        },
+        {
+            "name": "Food Menu (Public)",
+            "description": "Food Menu (Public)"
+        },
+        {
+            "name": "Food Menu Reservations",
+            "description": "Food Menu Reservations"
         },
         {
             "name": "Ledger",
