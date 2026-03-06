@@ -30,6 +30,8 @@ it('creates a credit order with new customer', function () {
             'first_name' => 'Juan',
             'middle_name' => 'Santos',
             'last_name' => 'Dela Cruz',
+            'contact_number' => '09171234567',
+            'address' => '123 Main St, Butuan City',
         ],
         'items' => [
             ['product_id' => $product->id, 'quantity' => 3],
@@ -39,13 +41,15 @@ it('creates a credit order with new customer', function () {
     $response->assertCreated();
     $response->assertJsonPath('data.total', 3000);
 
-    // Customer was created with credit balance
+    // Customer was created with credit balance, phone, and address
     $this->assertDatabaseHas('customers', [
         'user_id' => $user->id,
         'first_name' => 'Juan',
         'middle_name' => 'Santos',
         'last_name' => 'Dela Cruz',
         'name' => 'Juan Santos Dela Cruz',
+        'phone' => '09171234567',
+        'address' => '123 Main St, Butuan City',
         'credit_balance' => 3000,
     ]);
 
@@ -93,6 +97,8 @@ it('creates a credit order with existing customer and updates credit balance', f
         'credit_customer' => [
             'first_name' => 'Maria',
             'last_name' => 'Santos',
+            'contact_number' => '09281234567',
+            'address' => '456 Rizal Ave, Davao City',
         ],
         'items' => [
             ['product_id' => $product->id, 'quantity' => 1],
@@ -106,6 +112,8 @@ it('creates a credit order with existing customer and updates credit balance', f
     expect($customer->first_name)->toBe('Maria');
     expect($customer->last_name)->toBe('Santos');
     expect($customer->name)->toBe('Maria Santos');
+    expect($customer->phone)->toBe('09281234567');
+    expect($customer->address)->toBe('456 Rizal Ave, Davao City');
     expect($customer->orders_count)->toBe(3);
     expect($customer->total_spent)->toBe(12000);
 });

@@ -34,6 +34,8 @@ class StoreOrderRequest extends FormRequest
             'credit_customer.first_name' => ['required_if:payment_method,credit', 'nullable', 'string', 'max:255'],
             'credit_customer.middle_name' => ['nullable', 'string', 'max:255'],
             'credit_customer.last_name' => ['required_if:payment_method,credit', 'nullable', 'string', 'max:255'],
+            'credit_customer.contact_number' => ['nullable', 'string', 'max:50'],
+            'credit_customer.address' => ['nullable', 'string', 'max:500'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => [
                 'required',

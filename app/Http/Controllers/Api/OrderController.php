@@ -396,6 +396,8 @@ class OrderController extends Controller
                         'middle_name' => $creditData['middle_name'] ?? null,
                         'last_name' => $creditData['last_name'],
                         'name' => $composedName,
+                        'phone' => $creditData['contact_number'] ?? $customer->phone,
+                        'address' => $creditData['address'] ?? $customer->address,
                         'credit_balance' => $customer->credit_balance + $lineTotal,
                     ]);
                 } else {
@@ -407,6 +409,8 @@ class OrderController extends Controller
                         'middle_name' => $creditData['middle_name'] ?? null,
                         'last_name' => $creditData['last_name'],
                         'name' => $composedName,
+                        'phone' => $creditData['contact_number'] ?? null,
+                        'address' => $creditData['address'] ?? null,
                         'status' => 'active',
                         'orders_count' => 1,
                         'total_spent' => $lineTotal,

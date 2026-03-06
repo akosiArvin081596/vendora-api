@@ -28,6 +28,7 @@ class CustomerFactory extends Factory
             'last_name' => $lastName,
             'email' => $this->faker->unique()->safeEmail(),
             'phone' => $this->faker->optional()->phoneNumber(),
+            'address' => $this->faker->optional()->address(),
             'status' => $this->faker->randomElement(['active', 'vip', 'inactive']),
             'orders_count' => $this->faker->numberBetween(0, 30),
             'total_spent' => $this->faker->numberBetween(0, 30000),
