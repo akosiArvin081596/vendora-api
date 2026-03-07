@@ -83,7 +83,10 @@
       "Bash(export:*)",
       "Bash(\"C:/Users/DSWDSRV-CARAGA/.config/herd/bin/php.bat\":*)",
       "Bash(\"C:/Users/DSWDSRV-CARAGA/.config/herd/bin/php.bat\" artisan:*)",
-      "Bash(\"$PHP\" artisan:*)"
+      "Bash(\"$PHP\" artisan:*)",
+      "Bash(\"/c/Users/DSWDSRV-CARAGA/.config/herd/bin/php84/php.exe\" artisan:*)",
+      "Bash(\"/c/Users/DSWDSRV-CARAGA/.config/herd/bin/php84/php.exe\":*)",
+      "Bash(grep:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

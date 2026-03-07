@@ -47,7 +47,7 @@ class AuthController extends Controller
     #[OA\Post(
         path: '/api/auth/register',
         tags: ['Auth'],
-        summary: 'Register a new buyer account',
+        summary: 'Register a new vendor account',
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
@@ -76,7 +76,7 @@ class AuthController extends Controller
                                 new OA\Property(property: 'id', type: 'integer', example: 1),
                                 new OA\Property(property: 'name', type: 'string', example: 'John Doe'),
                                 new OA\Property(property: 'email', type: 'string', format: 'email', example: 'john@example.com'),
-                                new OA\Property(property: 'user_type', type: 'string', example: 'buyer'),
+                                new OA\Property(property: 'user_type', type: 'string', example: 'vendor'),
                                 new OA\Property(property: 'created_at', type: 'string', format: 'date-time', example: '2026-01-10T10:00:00Z'),
                                 new OA\Property(property: 'updated_at', type: 'string', format: 'date-time', example: '2026-01-10T10:00:00Z'),
                             ]
@@ -93,7 +93,7 @@ class AuthController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => $request->password,
-            'user_type' => UserType::Buyer,
+            'user_type' => UserType::Vendor,
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;

@@ -529,7 +529,7 @@
                 "tags": [
                     "Auth"
                 ],
-                "summary": "Register a new buyer account",
+                "summary": "Register a new vendor account",
                 "operationId": "c7bb21a0d87049e161b8e4c9b0d909f2",
                 "requestBody": {
                     "required": true,
@@ -604,7 +604,7 @@
                                                 },
                                                 "user_type": {
                                                     "type": "string",
-                                                    "example": "buyer"
+                                                    "example": "vendor"
                                                 },
                                                 "created_at": {
                                                     "type": "string",
